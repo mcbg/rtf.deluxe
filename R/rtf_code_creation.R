@@ -57,7 +57,8 @@ tfl_number_order = \(tfl_number_list) {
 
 rtf_create_bookmark = \(code) sprintf('{\\*\\bkmkstart %s}{\\*\\bkmkend %s}', code, code)
 
-rtf_create_header = \(text, reference) {
+rtf_create_header = \(text) {
+  reference = gsub('\\W', '_', text)
   bm = rtf_create_bookmark(reference)
   text_rtf = sprintf("{\\pard\\outlinelevel0\\fs24\\b\\qc %s \\par}", text)
   paste0(bm, text_rtf)
@@ -212,7 +213,7 @@ rtf_create_output = \(output_metadata, output_directory, id_lookup) {
     # title
     type_format = c('figure' = 'Figure', 'table' = 'Table', 'listing' = 'Listing')
     full_title = paste(type_format[type], original_numbering, title)
-    rtf_title = rtf_create_header(full_title, id_lookup[name])
+    rtf_title = rtf_create_header(full_title)
 
     # subtitle & footnote
     rtf_subtitle = rtf_create_text(subtitle)
@@ -283,19 +284,38 @@ assemble_tfl_document = \(metadata, header_text) {
   rtf_content_list = metadata_sorted |>
     lapply(rtf_create_output, output_directory = tfl.path, id_lookup=id_lookup)
   rtf_content = rtf_content_list |> unlist()
+  output_titles = sapply(metadata, with, title)
+  rtf_toc = create_table_of_contents(rtf_content_list, output_titles)
+
+  # combine
+  full_document = rtf_add_head_and_tail(c(rtf_toc, '\\page', rtf_content))
+  return(full_document)
+}
+
+#' rtf_content_list contain 1 output per entry
+#' the table of contents will have 1 entry per output
+#' @export
+create_table_of_contents = \(rtf_content_list, output_titles) {
+  if (length(rtf_content_list) != length(output_titles)) {
+    stop('must have 1 title or each entry of rtf_content_list')
+  }
+
   content_page_count = sapply(rtf_content_list, \(rtf_line) grep('\\page', rtf_line) |> length())
+  number_of_output = length(rtf_content_list)
 
-  # table of contents
+  page_offset = (number_of_output %/% table_of_contents_entries_per_page) + 1
+  page_numbers = derive_page_number(content_page_count, page_offset)
+  references = gsub('\\W', '_', output_titles) # used to link table of contents entries to output headers
 
-  page_offset = (length(id_lookup) %/% table_of_contents_entries_per_page) + 1
-  page_lookup = derive_page_number(content_page_count, page_offset)
-  names(page_lookup) = sapply(metadata_sorted, with, name)
-
-  rtf_toc = sapply(metadata_sorted, \(md) {
-    rtf_create_link(md$title, id_lookup[md$name], page_lookup[md$name])
+  indices = seq_along(rtf_content_list)
+  rtf_toc = sapply(indices, \(i) {
+    rtf_create_link(output_titles[i], reference = references[i], page_numbers[i])
   })
+  return(rtf_toc)
+}
 
-  # rtf header
+#' @export
+rtf_add_head_and_tail = \(rtf_contents, header_text) {
   letter_dims_inch = c(8.5, 11) |> rev()
   rtf_paper_dims = paste0(c('\\paperw', '\\paperh'), letter_dims_inch |> inch_to_twip())
   rtf_header = c(
@@ -306,8 +326,6 @@ assemble_tfl_document = \(metadata, header_text) {
     '{\\header{\\pard\\tqr\\tx13000\\fs20 ', header_text, '\\tab Page \\chpgn  of {\\field{\\*\\fldinst NUMPAGES}}\\par}}',
     '{\\footer{\\qc\\fs20 \\par}}'
   )
-
-  full_document = c(rtf_header, rtf_toc, '\\page', rtf_content, '}')
+  full_document = c(rtf_header, rtf_contents, '}')
   return(full_document)
 }
-
