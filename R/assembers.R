@@ -1,3 +1,16 @@
+
+combine_pages_list = \(pages_list) {
+  N = length(pages_list)
+  if (N == 1) {
+    return(pages_list[[1]])
+  }
+  tail_pages = pages_list[-1] |>
+    lapply(append, '\\page', after = FALSE) |>
+    unlist()
+  result = c(pages_list[[1]], tail_pages)
+  return(result)
+}
+
 #' @export
 assemble_rtfs_files = \(file_names, output_titles) {
   name = basename(file_names)
@@ -19,7 +32,7 @@ assemble_rtfs_files = \(file_names, output_titles) {
 }
 
 #' @export
-create_tfl_document_by_metadata = \(metadata, header_text) {
+create_tfl_document_by_metadata = \(metadata, header_text='') {
   # sort metadata
   tfl_ordering = metadata |>
     sapply(`[[`, 'original_numbering') |>
@@ -31,13 +44,23 @@ create_tfl_document_by_metadata = \(metadata, header_text) {
   id_lookup = sapply(metadata_sorted, with, name)
   names(id_lookup) = sapply(metadata_sorted, with, name)
   rtf_content_list = metadata_sorted |>
-    lapply(rtf_create_output, output_directory = tfl.path, id_lookup=id_lookup)
+    lapply(rtf_create_output_by_metadata, output_directory = tfl.path, id_lookup=id_lookup)
   rtf_content = rtf_content_list |> unlist()
   output_titles = sapply(metadata, with, title)
   rtf_toc = create_table_of_contents(rtf_content_list, output_titles)
 
   # combine
-  full_document = rtf_add_head_and_tail(c(rtf_toc, '\\page', rtf_content))
+  full_document = rtf_add_head_and_tail(c(rtf_toc, '\\page', rtf_content), header_text=header_text)
   return(full_document)
 }
 
+#' @export
+create_standalone_rtf_file = \(output, output_title=NULL) {
+  # add each output to document
+  rtf_pages = rtf_create_table(output)
+  combined = combine_pages_list(rtf_pages)
+
+  # combine
+  full_document = rtf_add_head_and_tail(combined, header_text = '')
+  return(full_document)
+}

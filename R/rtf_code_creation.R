@@ -100,7 +100,8 @@ rtf_create_table = \(table_input, margin_cm=0.25, max_rows_per_page = getOption(
     header_rtf = header |> rtf_create_row(cellx_control_words, bold=TRUE, border_control_words = '\\clbrdrt\\brdrs\\clbrdrb\\brdrs')
     rows_rtf = sapply(sub_table_contents, rtf_create_row, cellx_control_words=cellx_control_words)
     last_row_rtf = rtf_create_row(contents_last, border_control_words = '\\clbrdrb\\brdrs', cellx_control_words = cellx_control_words)
-    c('{', header_rtf, rows_rtf, last_row_rtf, '}')
+    # paragraph is to ensure that \\page works
+    c('{\\pard\\fs24\\par}', '{', header_rtf, rows_rtf, last_row_rtf, '}')
   })
   return(sub_tables)
 }
@@ -156,7 +157,6 @@ rtf_create_page = \(rtf_content, rtf_title, rtf_subtitle, rtf_footnote){
   rtf_separator = '{\\pard\\par}'
   rtf_full = c(rtf_title, rtf_subtitle, rtf_separator, rtf_content, rtf_separator, rtf_footnote, '\\page')
 
-
   # BUG: only fixes limited number of symbols
   #      fix all by using utf8ToInt and \'XX control words
   # fix unicode character
@@ -166,7 +166,20 @@ rtf_create_page = \(rtf_content, rtf_title, rtf_subtitle, rtf_footnote){
   return(rtf_full_final)
 }
 
-rtf_create_output = \(output_metadata, output_directory, id_lookup) {
+rtf_create_output = \(output, type) {
+    if (type == 'table' | type == 'listing') {
+      rtf_pages_contents = rtf_create_table(output)
+    }
+    # BUG:
+    # else if (type == 'figure') {
+    #  rtf_pages_contents = rtf_create_png_rtf(filename) |> list()
+    #}
+    else {
+      stop('invalid type')
+    }
+}
+
+rtf_create_output_by_metadata = \(output_metadata, output_directory, id_lookup) {
   with(output_metadata, {
     # title
     type_format = c('figure' = 'Figure', 'table' = 'Table', 'listing' = 'Listing')
@@ -215,7 +228,6 @@ derive_page_number = \(number_of_pages, page_offset) {
   result = c(0, cumulated_pages[-length(cumulated_pages)]) + 1 + page_offset
   return(result)
 }
-
 
 #' rtf_content_list contain 1 output per entry
 #' the table of contents will have 1 entry per output

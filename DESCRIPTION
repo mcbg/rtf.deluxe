@@ -8,3 +8,4 @@ Description: Creates TFL RTF-files and assembles RTF-files.
 License: Public Domain
 Encoding: UTF-8
 Depends: R (>= 4.1.0)
+RoxygenNote: 7.3.2
