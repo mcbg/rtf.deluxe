@@ -2,64 +2,20 @@
 # Bugs:
 # - ignores multirow header and cell merging in flextables
 # - the following variables are hardcoded and depend on font size:
-#   max_rows_per_page (used for table of contents)
 #   cm_per_character (used to compute a tables column width based on the number of characters)
-#   table_of_content_entries_per_page
 # - the table of contents and header use \tx13000 which hardcodes how far to the right the page number is in twip
 # - no easy way to update font styling
-
-# functions, tfl ordering -------------------------------------------------
-
-tfl_number_to_numeric_vector = function(tfl_number) {
-  vec = tfl_number |>
-    strsplit('\\.') |>
-    unlist() |>
-    as.numeric()
-  return(vec)
-}
-
-tfl_number_less_than = \(tfl_number, tfl_number2) {
-  x = tfl_number |> tfl_number_to_numeric_vector()
-  y = tfl_number2 |> tfl_number_to_numeric_vector()
-
-  for (i in seq_along(x)) {
-    if (x[i] < y[i]) {
-      return(TRUE)
-    }
-    else if (x[i] > y[i]) {
-      return(FALSE)
-    }
-  }
-  return(TRUE)
-}
-
-tfl_number_order = \(tfl_number_list) {
-  n = length(tfl_number_list)
-  res = seq_along(tfl_number_list)
-  # sorting algorithm
-  for (i in 1:(n-1)) {
-    for (j in 1:(n-i)) {
-      x = tfl_number_list[[res[j]]]
-      y = tfl_number_list[[res[j + 1]]]
-      if (tfl_number_less_than(y, x)) {
-        temp = res[j]
-        res[j] <- res[j+1]
-        res[j+1] <- temp
-      }
-    }
-  }
-  return(res)
-}
+# many bugs could be handled by adding global options
 
 # functions, derive RTF ---------------------------------------------------------------
 
-# \outlinelevelN indicates headers
 
 rtf_create_bookmark = \(code) sprintf('{\\*\\bkmkstart %s}{\\*\\bkmkend %s}', code, code)
 
 rtf_create_header = \(text) {
   reference = gsub('\\W', '_', text)
   bm = rtf_create_bookmark(reference)
+  # \outlinelevelN indicates headers
   text_rtf = sprintf("{\\pard\\outlinelevel0\\fs24\\b\\qc %s \\par}", text)
   paste0(bm, text_rtf)
 }
@@ -86,7 +42,7 @@ rtf_create_png_rtf = \(file_name, width_scale = 100, height_scale = 100) {
 
 # rtf_create_table returns a list of rtf code, where each page
 # corresponds to an entry of the list.
-rtf_create_table = \(table_input, margin_cm=0.25, max_rows_per_page = 20) {
+rtf_create_table = \(table_input, margin_cm=0.25, max_rows_per_page = getOption('rtf_deluxe.max_rows_per_page')) {
 
   # extra data from table_input
   if ('data.frame' %in% class(table_input)) {
@@ -184,8 +140,7 @@ character_count_largest_word = \(x, header=NULL) {
     max()
 }
 
-cm_per_character = 5 / 25 # this is based on how many S's in pt 10 Consolas I could fit in a 5cm column
-character_to_cm = \(x) cm_per_character * x
+character_to_cm = \(x, cm_per_character = getOption('rtf_deluxe.cm_per_character')) cm_per_character * x
 
 inch_to_twip = \(x_inch) round(x_inch * 1440)
 cm_to_twip = \(x_cm) {
@@ -201,6 +156,9 @@ rtf_create_page = \(rtf_content, rtf_title, rtf_subtitle, rtf_footnote){
   rtf_separator = '{\\pard\\par}'
   rtf_full = c(rtf_title, rtf_subtitle, rtf_separator, rtf_content, rtf_separator, rtf_footnote, '\\page')
 
+
+  # BUG: only fixes limited number of symbols
+  #      fix all by using utf8ToInt and \'XX control words
   # fix unicode character
   rtf_full_nonbreak_spaces_fix = gsub('\u00A0', '\\\\~', rtf_full)
   rtf_full_dash_fix = gsub('\u2011', '-', rtf_full_nonbreak_spaces_fix)
@@ -250,17 +208,6 @@ rtf_create_output = \(output_metadata, output_directory, id_lookup) {
   })
 }
 
-
-# list filter -------------------------------------------------------------
-
-list_filter = \(input_list, expr) {
-  captured_expression = substitute(expr)
-  matching_entries = sapply(input_list, \(x) {
-    eval(captured_expression, envir = x)
-  })
-  input_list[matching_entries]
-}
-
 # assemble doc ------------------------------------------------------------
 
 derive_page_number = \(number_of_pages, page_offset) {
@@ -269,37 +216,20 @@ derive_page_number = \(number_of_pages, page_offset) {
   return(result)
 }
 
-table_of_contents_entries_per_page = 39
-assemble_tfl_document = \(metadata, header_text) {
-  # sort metadata
-  tfl_ordering = metadata |>
-    sapply(`[[`, 'original_numbering') |>
-    tfl_number_order()
-  metadata_sorted = metadata[tfl_ordering]
-
-  # add each output to document
-
-  id_lookup = sapply(metadata_sorted, with, name)
-  names(id_lookup) = sapply(metadata_sorted, with, name)
-  rtf_content_list = metadata_sorted |>
-    lapply(rtf_create_output, output_directory = tfl.path, id_lookup=id_lookup)
-  rtf_content = rtf_content_list |> unlist()
-  output_titles = sapply(metadata, with, title)
-  rtf_toc = create_table_of_contents(rtf_content_list, output_titles)
-
-  # combine
-  full_document = rtf_add_head_and_tail(c(rtf_toc, '\\page', rtf_content))
-  return(full_document)
-}
 
 #' rtf_content_list contain 1 output per entry
 #' the table of contents will have 1 entry per output
 #' @export
 create_table_of_contents = \(rtf_content_list, output_titles) {
+  # get options
+  table_of_contents_entries_per_page = getOption('rtf_deluxe.table_of_contents_entries_per_page')
+
+  # asserts
   if (length(rtf_content_list) != length(output_titles)) {
     stop('must have 1 title or each entry of rtf_content_list')
   }
 
+  # processing
   content_page_count = sapply(rtf_content_list, \(rtf_line) grep('\\page', rtf_line) |> length())
   number_of_output = length(rtf_content_list)
 
@@ -316,6 +246,7 @@ create_table_of_contents = \(rtf_content_list, output_titles) {
 
 #' @export
 rtf_add_head_and_tail = \(rtf_contents, header_text) {
+  # BUG: doesnt add margins + footery / headery
   letter_dims_inch = c(8.5, 11) |> rev()
   rtf_paper_dims = paste0(c('\\paperw', '\\paperh'), letter_dims_inch |> inch_to_twip())
   rtf_header = c(
