@@ -3,24 +3,35 @@ deluxe_gsub = \(text, regex, replace) gsub(regex, replace, text, perl=TRUE)
 deluxe_split = \(text, sep) strsplit(text, split=sep)[[1]]
 deluxe_substr = \(text, i_start, i_end) substr(text, i_start, i_end)[[1]]
 
+extract_page = \(single_page) {
+  result = single_page |>
+    remove_braces_by_match('\\{\\\\header') |>
+    remove_braces_by_match('\\{\\\\footer') |>
+    deluxe_gsub('(?s)\\\\paper[wh]\\d+', '') |>
+    deluxe_gsub('(?s)\\\\marg\\w\\d+', '') |>
+    deluxe_gsub('\\\\headery\\d+', '') |>
+    deluxe_gsub('\\\\footery\\d+', '') |>
+    deluxe_gsub('(?s)\\\\marg\\w\\d+', '') |>
+    deluxe_split(sep='\n') |>
+    c('\\page')
+  return(result)
+}
 
 #' takes a standalone RTF-file and return contents without header and final curly brace
 #' @export
-extract_contents = \(rtf_lines) {
+extract_file = \(rtf_lines) {
+  # BUG: adds a final blank page
   rtf_text = paste(rtf_lines, collapse = '\n')
-  no_header = rtf_text |>
-    remove_braces_by_match('\\{\\\\header')
-  no_footer = no_header |>
-    remove_braces_by_match('\\{\\\\footer')
-  no_preamble = no_footer |>
-    deluxe_sub('(?s)(.*?)(?=\\{\\\\pard)', '')
-  no_final_brace = no_preamble |>
+  pages = rtf_text |> deluxe_split('\\page')
+  pages_extracted = lapply(pages, extract_page)
+  pages_extracted_lines = pages_extracted |> unlist()
+  result_text = pages_extracted_lines |>
+    paste(collapse = '\n') |>
+    deluxe_sub('(?s)(.*?)(?=\\{\\\\pard)', '') |>
     deluxe_sub('(?s)(.*)\\}', '\\1')
-
-  result = no_final_brace |>
-    deluxe_split(sep='\n')
-
-  return(result)
+  result_lines = result_text |>
+    deluxe_split('\n')
+  return(result_lines)
 }
 
 #' @export
@@ -32,7 +43,7 @@ assemble_rtfs_files = \(file_names, output_titles) {
     rtf_content = readLines(single_file_name)
     reference = gsub('\\W', '_', single_title) # used to link table of contents entries to output headers
     bookmark = rtf_create_bookmark(reference)
-    c(bookmark, extract_contents(rtf_content), '\\page')
+    c(bookmark, extract_file(rtf_content), '\\page')
   })
   rtf_toc = create_table_of_contents(rtf_content_list, output_titles)
   rtf_all_content = c(
@@ -45,32 +56,26 @@ assemble_rtfs_files = \(file_names, output_titles) {
 
 get_index_of_closing_brace = \(text) {
   # BUG: {{}} doesnt remove last brace
-  open_br = gregexpr('\\{', text)[[1]]
-  closed_br = gregexpr('\\}', text)[[1]]
-  i = 2
-  j = 1
+  open_brace = gregexpr('\\{', text)[[1]]
+  closed_brace = gregexpr('\\}', text)[[1]]
+  i = 1
+  j = 0
   unclosed = 1
-  N = open_br |> length()
-  M = closed_br |> length()
+  N = open_brace |> length()
+  M = closed_brace |> length()
   while(j <= M) {
-    if (unclosed == 0) {
-      return (closed_br[j])
+    i_peak = i + 1
+    j_peak = j + 1
+    i_confirmed = i
+    j_confirmed = j
+    if (i_confirmed == j_confirmed) {
+      return (closed_brace[j_confirmed])
     }
-    else if (i == N | open_br[i] > closed_br[j]) {
-      if (unclosed == 1) {
-        return(closed_br[j])
-      }
-      else {
-        j = j + 1
-        unclosed = unclosed - 1
-      }
+    else if (i == N | open_brace[i_peak] > closed_brace[j_peak]) {
+      j = j + 1
     }
-    else if (open_br[i] == closed_br[j]) {
-      stop('two symbols at same index???')
-    }
-    else if (open_br[i] < closed_br[j]) {
+    else if (open_brace[i_peak] < closed_brace[j_peak]) {
       i = i + 1
-      unclosed = unclosed + 1
     }
     else {
       stop('??')
