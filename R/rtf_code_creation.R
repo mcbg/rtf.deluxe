@@ -66,12 +66,6 @@ rtf_create_table = \(table_input, margin_cm=0.25, max_rows_per_page = getOption(
   cell_width_cm = largest_nchar |>
     character_to_cm() |>
     sapply(max, 2)
-  cell_width_twips = (cell_width_cm + margin_cm) |>
-    cm_to_twip()
-  cellx_values = cell_width_twips |>
-    cumsum() |>
-    ceiling()
-  cellx_control_words = paste0('\\cellx', cellx_values)
 
   # prepare rows
   table_rows = dataset_to_row_list(dataset)
@@ -97,16 +91,24 @@ rtf_create_table = \(table_input, margin_cm=0.25, max_rows_per_page = getOption(
     contents_last = sub_table_contents[sub_table_length]
 
     # create sub-table for page
-    header_rtf = header |> rtf_create_row(cellx_control_words, bold=TRUE, border_control_words = '\\clbrdrt\\brdrs\\clbrdrb\\brdrs')
-    rows_rtf = sapply(sub_table_contents, rtf_create_row, cellx_control_words=cellx_control_words)
-    last_row_rtf = rtf_create_row(contents_last, border_control_words = '\\clbrdrb\\brdrs', cellx_control_words = cellx_control_words)
+    header_rtf = header |> rtf_create_row(cell_width_cm, bold=TRUE, border_control_words = '\\clbrdrt\\brdrs\\clbrdrb\\brdrs')
+    rows_rtf = sapply(sub_table_contents, rtf_create_row, cell_width_cm)
+    last_row_rtf = rtf_create_row(contents_last, border_control_words = '\\clbrdrb\\brdrs',
+      cell_width_cm)
     # paragraph is to ensure that \\page works
-    c('{\\pard\\fs24\\par}', '{', header_rtf, rows_rtf, last_row_rtf, '}')
+    c('{\\pard\\fs24\\par}', '{', header_rtf, header_rtf, rows_rtf, last_row_rtf, '}')
   })
   return(sub_tables)
 }
 
-rtf_create_row = \(rows, cellx_control_words, bold = FALSE, border_control_words = '') {
+rtf_create_row = \(rows, cell_width_cm, bold = FALSE, border_control_words = '') {
+  # derive cellx
+  cell_width_twips = (cell_width_cm) |>
+    cm_to_twip()
+  cellx_values = cell_width_twips |>
+    cumsum() |>
+    ceiling()
+  cellx_control_words = paste0('\\cellx', cellx_values)
   cell_control_words = c(
     ifelse(bold, '\\b', '\\b0'),
     ' '
