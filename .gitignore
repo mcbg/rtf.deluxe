@@ -1,4 +1,5 @@
 *.Rproj
+.Rbuildignore
 *.rtf
 .Rproj.user
 .Rhistory

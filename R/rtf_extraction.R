@@ -17,7 +17,7 @@ extract_page = \(single_page) {
   return(result)
 }
 
-#' takes a standalone RTF-file and return contents without header and final curly brace
+# takes a standalone RTF-file and return contents without header and final curly brace
 #' @export
 extract_file = \(rtf_lines) {
   # BUG: adds a final blank page

@@ -42,7 +42,8 @@ rtf_create_png_rtf = \(file_name, width_scale = 100, height_scale = 100) {
 
 # rtf_create_table returns a list of rtf code, where each page
 # corresponds to an entry of the list.
-rtf_create_table = \(table_input, margin_cm=0.25, max_rows_per_page = getOption('rtf_deluxe.max_rows_per_page')) {
+rtf_create_table = \(table_input,
+    margin_cm=0.25, max_rows_per_page = getOption('rtf_deluxe.max_rows_per_page')) {
 
   # extra data from table_input
   if ('data.frame' %in% class(table_input)) {
@@ -61,11 +62,16 @@ rtf_create_table = \(table_input, margin_cm=0.25, max_rows_per_page = getOption(
 
   # derive cellx control words
   largest_nchar_rows = sapply(dataset, character_count_largest_word)
-  largest_nchar_header = sapply(header, character_count_largest_word)
+  largest_nchar_header = header |>
+    deluxe_sub('\t.*', '') |>
+    sapply(character_count_largest_word)
   largest_nchar = pmax(largest_nchar_rows, largest_nchar_header)
   cell_width_cm = largest_nchar |>
     character_to_cm() |>
     sapply(max, 2)
+
+  # create header
+  header_rtf = rtf_create_hierarchical_header(header, cell_width_cm) |> unlist()
 
   # prepare rows
   table_rows = dataset_to_row_list(dataset)
@@ -91,12 +97,12 @@ rtf_create_table = \(table_input, margin_cm=0.25, max_rows_per_page = getOption(
     contents_last = sub_table_contents[sub_table_length]
 
     # create sub-table for page
-    header_rtf = header |> rtf_create_row(cell_width_cm, bold=TRUE, border_control_words = '\\clbrdrt\\brdrs\\clbrdrb\\brdrs')
     rows_rtf = sapply(sub_table_contents, rtf_create_row, cell_width_cm)
     last_row_rtf = rtf_create_row(contents_last, border_control_words = '\\clbrdrb\\brdrs',
       cell_width_cm)
+
     # paragraph is to ensure that \\page works
-    c('{\\pard\\fs24\\par}', '{', header_rtf, header_rtf, rows_rtf, last_row_rtf, '}')
+    c('{\\pard\\fs24\\par}', '{', header_rtf, rows_rtf, last_row_rtf, '}')
   })
   return(sub_tables)
 }
@@ -120,6 +126,7 @@ rtf_create_row = \(rows, cell_width_cm, bold = FALSE, border_control_words = '')
 
   cell_height_cm = 0.5
   cell_height_twip = cell_height_cm |> cm_to_twip()
+
   # answer
   ans = c('\\trowd',
     paste0('\\clvertalc', border_control_words, cellx_control_words),
@@ -231,8 +238,8 @@ derive_page_number = \(number_of_pages, page_offset) {
   return(result)
 }
 
-#' rtf_content_list contain 1 output per entry
-#' the table of contents will have 1 entry per output
+# rtf_content_list contain 1 output per entry
+# the table of contents will have 1 entry per output
 #' @export
 create_table_of_contents = \(rtf_content_list, output_titles) {
   # get options
