@@ -34,25 +34,6 @@ extract_file = \(rtf_lines) {
   return(result_lines)
 }
 
-#' @export
-assemble_rtfs_files = \(file_names, output_titles) {
-  name = basename(file_names)
-  rtf_content_list = lapply(seq_along(file_names), \(i) {
-    single_file_name = file_names[i]
-    single_title = output_titles[i]
-    rtf_content = readLines(single_file_name)
-    reference = gsub('\\W', '_', single_title) # used to link table of contents entries to output headers
-    bookmark = rtf_create_bookmark(reference)
-    c(bookmark, extract_file(rtf_content), '\\page')
-  })
-  rtf_toc = create_table_of_contents(rtf_content_list, output_titles)
-  rtf_all_content = c(
-    rtf_toc,'\\page',
-    rtf_content_list |> unlist()
-  )
-  full_document = rtf_add_head_and_tail(rtf_all_content, header_text = '')
-  return(full_document)
-}
 
 get_index_of_closing_brace = \(text) {
   # BUG: {{}} doesnt remove last brace

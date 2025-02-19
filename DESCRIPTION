@@ -1,0 +1,11 @@
+Package: rtf_deluxe
+Type: Package
+Title: Creates RTF-files for pharma output.
+Version: 0.1.0
+ByteCompile: TRUE
+Description: Creates TFL RTF-files and assembles RTF-files.
+  The package has no dependencies.
+License: Public Domain
+Encoding: UTF-8
+Depends: R (>= 4.1.0)
+RoxygenNote: 7.3.2
