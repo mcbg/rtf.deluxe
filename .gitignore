@@ -1,3 +1,5 @@
+*.Rproj
+*.rtf
 .Rproj.user
 .Rhistory
 .RData
