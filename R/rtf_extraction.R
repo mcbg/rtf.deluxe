@@ -1,8 +1,3 @@
-deluxe_sub = \(text, regex, replace) sub(regex, replace, text, perl=TRUE)
-deluxe_gsub = \(text, regex, replace) gsub(regex, replace, text, perl=TRUE)
-deluxe_split = \(text, sep) strsplit(text, split=sep)[[1]]
-deluxe_substr = \(text, i_start, i_end) substr(text, i_start, i_end)[[1]]
-
 extract_page = \(single_page) {
   result = single_page |>
     remove_braces_by_match('\\{\\\\header') |>
@@ -17,10 +12,9 @@ extract_page = \(single_page) {
   return(result)
 }
 
-#' takes a standalone RTF-file and return contents without header and final curly brace
+# takes a standalone RTF-file and return contents without header and final curly brace
 #' @export
 extract_file = \(rtf_lines) {
-  # BUG: adds a final blank page
   rtf_text = paste(rtf_lines, collapse = '\n')
   pages = rtf_text |> deluxe_split('\\page')
   pages_extracted = lapply(pages, extract_page)
@@ -34,9 +28,7 @@ extract_file = \(rtf_lines) {
   return(result_lines)
 }
 
-
 get_index_of_closing_brace = \(text) {
-  # BUG: {{}} doesnt remove last brace
   open_brace = gregexpr('\\{', text)[[1]]
   closed_brace = gregexpr('\\}', text)[[1]]
   i = 1
@@ -66,11 +58,9 @@ get_index_of_closing_brace = \(text) {
 }
 
 remove_braces = \(text, starting_brace_index) {
-  # BUG: doesnt work if starting_brace_index = 1
   text_before_starting_brace = deluxe_substr(text, 1, starting_brace_index - 1)
   text_after_starting_brace = substr(text, starting_brace_index, nchar(text))
   closing_bracket_index = get_index_of_closing_brace(text_after_starting_brace)
-  # BUG: doesnt work if closing bracket is last character in string
   text_after_closing_brace = deluxe_substr(text_after_starting_brace, closing_bracket_index + 1, nchar(text_after_starting_brace))
   result = paste0(text_before_starting_brace, text_after_closing_brace)
 

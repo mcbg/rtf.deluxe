@@ -1,3 +1,6 @@
+*.Rproj
+.Rbuildignore
+*.rtf
 .Rproj.user
 *.Rproj
 .Rhistory

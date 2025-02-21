@@ -1,3 +1,4 @@
+# Functions to assemble RTF-files
 
 combine_pages_list = \(pages_list) {
   N = length(pages_list)
@@ -14,13 +15,15 @@ combine_pages_list = \(pages_list) {
 #' @export
 assemble_rtfs_files = \(file_names, output_titles) {
   name = basename(file_names)
+  N = length(file_names)
   rtf_content_list = lapply(seq_along(file_names), \(i) {
     single_file_name = file_names[i]
     single_title = output_titles[i]
     rtf_content = readLines(single_file_name)
     reference = gsub('\\W', '_', single_title) # used to link table of contents entries to output headers
     bookmark = rtf_create_bookmark(reference)
-    c(bookmark, extract_file(rtf_content), '\\page')
+    page_break = ifelse(i == N, '', '\\page')
+    c(bookmark, extract_file(rtf_content), page_break)
   })
   rtf_toc = create_table_of_contents(rtf_content_list, output_titles)
   rtf_all_content = c(
@@ -31,6 +34,9 @@ assemble_rtfs_files = \(file_names, output_titles) {
   return(full_document)
 }
 
+# <<<< --------------------------------------------------------------------
+
+
 #' @export
 create_tfl_document_by_metadata = \(metadata, header_text='') {
   # sort metadata
@@ -40,7 +46,6 @@ create_tfl_document_by_metadata = \(metadata, header_text='') {
   metadata_sorted = metadata[tfl_ordering]
 
   # add each output to document
-
   id_lookup = sapply(metadata_sorted, with, name)
   names(id_lookup) = sapply(metadata_sorted, with, name)
 
