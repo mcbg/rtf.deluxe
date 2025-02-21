@@ -1,11 +1,10 @@
-# Author: Michael Galanakis
+# Functions that create elements of a RTF-file
+#
 # Bugs:
 # - ignores multirow header and cell merging in flextables
-# - the following variables are hardcoded and depend on font size:
-#   cm_per_character (used to compute a tables column width based on the number of characters)
 # - the table of contents and header use \tx13000 which hardcodes how far to the right the page number is in twip
+#   could be fixed with global option
 # - no easy way to update font styling
-# many bugs could be handled by adding global options
 
 # functions, derive RTF ---------------------------------------------------------------
 

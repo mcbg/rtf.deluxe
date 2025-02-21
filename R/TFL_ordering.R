@@ -1,4 +1,5 @@
-# functions, tfl ordering -------------------------------------------------
+# Function that order TFL output by numbering.
+
 
 tfl_number_to_numeric_vector = function(tfl_number) {
   vec = tfl_number |>
