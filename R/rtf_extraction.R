@@ -1,8 +1,3 @@
-deluxe_sub = \(text, regex, replace) sub(regex, replace, text, perl=TRUE)
-deluxe_gsub = \(text, regex, replace) gsub(regex, replace, text, perl=TRUE)
-deluxe_split = \(text, sep) strsplit(text, split=sep)[[1]]
-deluxe_substr = \(text, i_start, i_end) substr(text, i_start, i_end)[[1]]
-
 extract_page = \(single_page) {
   result = single_page |>
     remove_braces_by_match('\\{\\\\header') |>
