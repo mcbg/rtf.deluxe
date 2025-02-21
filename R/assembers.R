@@ -43,10 +43,18 @@ create_tfl_document_by_metadata = \(metadata, header_text='') {
 
   id_lookup = sapply(metadata_sorted, with, name)
   names(id_lookup) = sapply(metadata_sorted, with, name)
+
+  # content
   rtf_content_list = metadata_sorted |>
     lapply(rtf_create_output_by_metadata, output_directory = tfl.path, id_lookup=id_lookup)
   rtf_content = rtf_content_list |> unlist()
-  output_titles = sapply(metadata, with, title)
+
+  # table of content
+  output_full_titles = sapply(metadata, with, {
+    type_format = c('figure' = 'Figure', 'table' = 'Table', 'listing' = 'Listing')
+    full_title = paste(type_format[type], original_numbering, title)
+    full_title
+  })
   rtf_toc = create_table_of_contents(rtf_content_list, output_titles)
 
   # combine

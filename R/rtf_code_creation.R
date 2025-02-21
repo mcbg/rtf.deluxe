@@ -186,7 +186,10 @@ rtf_create_output_by_metadata = \(output_metadata, output_directory, id_lookup) 
     # title
     type_format = c('figure' = 'Figure', 'table' = 'Table', 'listing' = 'Listing')
     full_title = paste(type_format[type], original_numbering, title)
-    rtf_title = rtf_create_header(full_title)
+    rtf_title = c(
+      rtf_create_bookmark(full_title),
+      rtf_create_header(full_title)
+    )
 
     # subtitle & footnote
     rtf_subtitle = rtf_create_text(subtitle)
