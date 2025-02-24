@@ -12,11 +12,9 @@
 rtf_create_bookmark = \(code) sprintf('{\\*\\bkmkstart %s}{\\*\\bkmkend %s}', code, code)
 
 rtf_create_header = \(text) {
-  reference = gsub('\\W', '_', text)
-  bm = rtf_create_bookmark(reference)
   # \outlinelevelN indicates headers
   text_rtf = sprintf("{\\pard\\outlinelevel0\\fs24\\b\\qc %s \\par}", text)
-  paste0(bm, text_rtf)
+  paste0(text_rtf)
 }
 
 rtf_create_link = \(text, reference, page_number, fixed_width = 100) {
@@ -160,6 +158,13 @@ cm_to_twip = \(x_cm) {
 
 # create page -------------------------------------------------------------
 
+clean_utf8 = \(text) {
+  rtf_full_nonbreak_spaces_fix = gsub('\u00A0', '\\\\~', text)
+  rtf_full_dash_fix = gsub('\u2011', '-', rtf_full_nonbreak_spaces_fix)
+  rtf_full_final = gsub('\u00B1', '\\\\u177? ', rtf_full_dash_fix) # minus
+  return(rtf_full_final)
+}
+
 rtf_create_page = \(rtf_content, rtf_title, rtf_subtitle, rtf_footnote){
   # combine
   rtf_separator = '{\\pard\\par}'
@@ -168,9 +173,7 @@ rtf_create_page = \(rtf_content, rtf_title, rtf_subtitle, rtf_footnote){
   # BUG: only fixes limited number of symbols
   #      fix all by using utf8ToInt and \'XX control words
   # fix unicode character
-  rtf_full_nonbreak_spaces_fix = gsub('\u00A0', '\\\\~', rtf_full)
-  rtf_full_dash_fix = gsub('\u2011', '-', rtf_full_nonbreak_spaces_fix)
-  rtf_full_final = gsub('\u00B1', '\\\\u00B1', rtf_full_dash_fix)
+  rtf_full_final = rtf_full |> clean_utf8()
   return(rtf_full_final)
 }
 
@@ -187,13 +190,13 @@ rtf_create_output = \(output, type) {
     }
 }
 
-rtf_create_output_by_metadata = \(output_metadata, output_directory, id_lookup) {
+rtf_create_output_by_metadata = \(output_metadata, output_directory, reference) {
   with(output_metadata, {
     # title
     type_format = c('figure' = 'Figure', 'table' = 'Table', 'listing' = 'Listing')
     full_title = paste(type_format[type], original_numbering, title)
     rtf_title = c(
-      rtf_create_bookmark(full_title),
+      rtf_create_bookmark(reference),
       rtf_create_header(full_title)
     )
 
@@ -243,7 +246,7 @@ derive_page_number = \(number_of_pages, page_offset) {
 # rtf_content_list contain 1 output per entry
 # the table of contents will have 1 entry per output
 #' @export
-create_table_of_contents = \(rtf_content_list, output_titles) {
+create_table_of_contents = \(rtf_content_list, output_titles, references) {
   # get options
   table_of_contents_entries_per_page = getOption('rtf_deluxe.table_of_contents_entries_per_page')
 
@@ -258,11 +261,11 @@ create_table_of_contents = \(rtf_content_list, output_titles) {
 
   page_offset = (number_of_output %/% table_of_contents_entries_per_page) + 1
   page_numbers = derive_page_number(content_page_count, page_offset)
-  references = gsub('\\W', '_', output_titles) # used to link table of contents entries to output headers
 
   indices = seq_along(rtf_content_list)
   rtf_toc = sapply(indices, \(i) {
-    rtf_create_link(output_titles[i], reference = references[i], page_numbers[i])
+    clean_title = output_titles[i] |> clean_utf8()
+    rtf_create_link(clean_title, reference = references[i], page_numbers[i])
   })
   return(rtf_toc)
 }

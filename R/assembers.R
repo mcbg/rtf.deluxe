@@ -16,18 +16,18 @@ combine_pages_list = \(pages_list) {
 assemble_rtfs_files = \(file_names, output_titles) {
   name = basename(file_names)
   N = length(file_names)
+  references = paste0('ref', seq_along(file_names))
   rtf_content_list = lapply(seq_along(file_names), \(i) {
     single_file_name = file_names[i]
     single_title = output_titles[i]
     rtf_content = readLines(single_file_name)
-    reference = gsub('\\W', '_', single_title) # used to link table of contents entries to output headers
-    bookmark = rtf_create_bookmark(reference)
+    bookmark = rtf_create_bookmark(reference[i])
     page_break = ifelse(i == N, '', '\\page')
     c(bookmark, extract_file(rtf_content), page_break)
   })
-  rtf_toc = create_table_of_contents(rtf_content_list, output_titles)
+  rtf_toc = create_table_of_contents(rtf_content_list, output_titles, references)
   rtf_all_content = c(
-    rtf_toc,'\\page',
+    rtf_toc, '\\page',
     rtf_content_list |> unlist()
   )
   full_document = rtf_add_head_and_tail(rtf_all_content, header_text = '')
@@ -45,22 +45,24 @@ create_tfl_document_by_metadata = \(metadata, header_text='') {
     tfl_number_order()
   metadata_sorted = metadata[tfl_ordering]
 
-  # add each output to document
-  id_lookup = sapply(metadata_sorted, with, name)
-  names(id_lookup) = sapply(metadata_sorted, with, name)
-
+  # derive references
+  references = paste0('ref', seq_along(metadata_sorted))
+  
   # content
   rtf_content_list = metadata_sorted |>
-    lapply(rtf_create_output_by_metadata, output_directory = tfl.path, id_lookup=id_lookup)
+    seq_along() |> 
+    lapply(\(i) {
+      rtf_create_output_by_metadata(metadata_sorted[[i]], reference = references[i], output_directory = tfl.path)
+    })
   rtf_content = rtf_content_list |> unlist()
 
   # table of content
-  output_full_titles = sapply(metadata, with, {
+  output_full_titles = sapply(metadata_sorted, with, {
     type_format = c('figure' = 'Figure', 'table' = 'Table', 'listing' = 'Listing')
     full_title = paste(type_format[type], original_numbering, title)
     full_title
   })
-  rtf_toc = create_table_of_contents(rtf_content_list, output_titles)
+  rtf_toc = create_table_of_contents(rtf_content_list, output_full_titles, references = references)
 
   # combine
   full_document = rtf_add_head_and_tail(c(rtf_toc, '\\page', rtf_content), header_text=header_text)
