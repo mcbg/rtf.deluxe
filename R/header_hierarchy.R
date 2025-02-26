@@ -1,9 +1,31 @@
 # These function group columns allowing header this groupings.
+remove_head = \(x_vector, n) {
+  if (length(x_vector) <= n) {
+    return(NA)
+  }
+  else if (n == 0) {
+    return(x_vector)
+  }
+  else {
+    res = x_vector[-seq_len(n)]
+    return(res)
+  }
+}
+
+na_replace = \(x_vector, replace) {
+  x_vector[is.na(x_vector)] = replace
+  return(x_vector)
+}
 
 get_row_list = \(column_names) {
   column_list = column_names |> strsplit(split = '\t')
   n_header_row = column_list |> sapply(length) |> unlist() |> max()
-  row_list = seq_len(n_header_row) |> lapply(\(i) sapply(column_list, `[`, i))
+  row_list = seq_len(n_header_row) |> lapply(\(i) {
+    column_list |>
+      lapply(remove_head, i - 1) |>
+      lapply(na_replace, '') |>
+      sapply(paste, collapse='\t')
+  })
   return(row_list)
 }
 
@@ -78,6 +100,7 @@ derive_merged_cell_values = \(values, base_width) {
   header_matrix = do.call(rbind, rows_list)
   cell_widths = header_matrix %*% base_width |>
     as.vector()
-
-  list(values = merged_cell_values, width = cell_widths)
+  merged_values_clean = merged_cell_values |> deluxe_sub('\t.*', '')
+  merged_values_clean[is.na(merged_values_clean)] = ''
+  list(values = merged_values_clean, width = cell_widths)
 }
