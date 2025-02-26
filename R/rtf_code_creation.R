@@ -94,7 +94,7 @@ rtf_create_table = \(table_input,
     contents_last = sub_table_contents[sub_table_length]
 
     # create sub-table for page
-    rows_rtf = sapply(sub_table_contents, rtf_create_row, cell_width_cm)
+    rows_rtf = sapply(contents_excl_last, rtf_create_row, cell_width_cm)
     last_row_rtf = rtf_create_row(contents_last, border_control_words = '\\clbrdrb\\brdrs',
       cell_width_cm)
 
