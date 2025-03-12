@@ -104,3 +104,40 @@ derive_merged_cell_values = \(values, base_width) {
   merged_values_clean[is.na(merged_values_clean)] = ''
   list(values = merged_values_clean, width = cell_widths)
 }
+
+# function, widen by dose -------------------------------------------------------------------
+
+# the RTF functionality creates a hierachical header structure using tab separation
+# so a table (data.frame or data.table) with variables named var1\theader var2\theader
+# will be rendered thus:
+# +-------------------+
+# |      Header       |
+# +--------+----------+
+# |  Var1  |   Var2   |
+# +--------+----------+
+
+#' @export
+widen_header_by = \(subdata, by_variable) {
+  SD_list_unordered = subdata |> split(by=by_variable)
+  SD_list = SD_list_unordered[order(names(SD_list_unordered))]
+  statistic = SD_list[[1]][, .(Statistic)]
+  SD_new_names = lapply(SD_list, \(subdata) {
+    #if (!identical(subdata$Statistic, statistic$Statistic)) stop('wrong order')
+    single_label = subdata[1, get(by_variable)]
+
+    # remove
+    subdata[[by_variable]] = NULL
+    subdata[, Statistic := NULL]
+
+    # new names
+    names(subdata) = paste(names(subdata), single_label, sep='\t')
+
+    return(subdata)
+  })
+  names(SD_new_names) = NULL
+
+  # collect to one dataset
+  ans = do.call(cbind, c(list(statistic), SD_new_names))
+
+  return(ans)
+}
