@@ -18,8 +18,6 @@ rtf_create_header = \(text) {
 }
 
 rtf_create_link = \(text, reference, page_number, fixed_width = 100) {
-  dot_length = fixed_width - nchar(text) - nchar(page_number)
-  dots_text = rep('.', dot_length) |> paste(collapse = '')
   sprintf('{\\pard {\\field{\\*\\fldinst{HYPERLINK "#%s"}}{\\fldrslt{\\tldot\\tqr\\tx13000 %s \\tab %d\\par}}}}',
     reference, text, page_number)
 }
@@ -138,6 +136,9 @@ rtf_create_text = \(text) paste0('{\\pard\\qc\\fs24 ', text, '\\par}')
 # functions, column width -------------------------------------------------
 
 character_count_largest_word = \(x, header=NULL) {
+  if (x |> nchar() |> max() == 0) {
+    return(0)
+  }
   x |>
     as.character() |>
     c(header) |>
@@ -177,24 +178,11 @@ rtf_create_page = \(rtf_content, rtf_title, rtf_subtitle, rtf_footnote){
   return(rtf_full_final)
 }
 
-rtf_create_output = \(output, type) {
-    if (type == 'table' | type == 'listing') {
-      rtf_pages_contents = rtf_create_table(output)
-    }
-    # BUG:
-    # else if (type == 'figure') {
-    #  rtf_pages_contents = rtf_create_png_rtf(filename) |> list()
-    #}
-    else {
-      stop('invalid type')
-    }
-}
-
 rtf_create_output_by_metadata = \(output_metadata, output_directory, reference) {
   with(output_metadata, {
     # title
     type_format = c('figure' = 'Figure', 'table' = 'Table', 'listing' = 'Listing')
-    full_title = paste(type_format[type], original_numbering, title)
+    full_title = paste(type_format[type], numbering, title)
     rtf_title = c(
       rtf_create_bookmark(reference),
       rtf_create_header(full_title)
@@ -208,6 +196,14 @@ rtf_create_output_by_metadata = \(output_metadata, output_directory, reference) 
     if (type == 'table' | type == 'listing') {
       filename = paste0(name, '.rds')
       tfl_table = file.path(output_directory, filename) |>  readRDS()
+
+      # checks
+      if ('data.table' %in% class(tfl_table) & !exists('data.table'))
+        stop('table with class `data.table` but data.table is not loaded')
+      if (tfl_table |> nrow() == 0)
+        stop('table with 0 rows', output$title)
+
+      # create pages
       rtf_pages_contents = rtf_create_table(tfl_table)
     }
     else if (type == 'figure') {
@@ -221,7 +217,6 @@ rtf_create_output_by_metadata = \(output_metadata, output_directory, reference) 
     # only adds title and subtitle to first subtable
     rtf_pages_first = rtf_create_page(rtf_pages_contents[[1]],
       rtf_title=rtf_title, rtf_subtitle=rtf_subtitle, rtf_footnote=rtf_footnote)
-    # BUG: doesn't handle case with only one input
     rtf_pages_rest = lapply(rtf_pages_contents[-1], rtf_create_page,
       rtf_title=NULL, rtf_subtitle=NULL, rtf_footnote=rtf_footnote) |>
       unlist()

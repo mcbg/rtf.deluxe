@@ -39,22 +39,22 @@ assemble_rtfs_files = \(file_names, output_titles) {
 
 #' @export
 create_tfl_document_by_metadata = \(metadata, header_text='') {
-  
+
   # sort metadata
   tfl_ordering = metadata |>
-    sapply(`[[`, 'original_numbering') |>
+    sapply(`[[`, 'numbering') |>
     tfl_number_order()
   metadata_sorted = metadata[tfl_ordering]
 
   # derive references
   references = sapply(metadata_sorted, with, {
     type_format = c('figure' = 'Figure', 'table' = 'Table', 'listing' = 'Listing')
-    paste(type_format[type], original_numbering, sep='_') 
+    paste(type_format[type], numbering, sep='_')
   })
-  
+
   # content
   rtf_content_list = metadata_sorted |>
-    seq_along() |> 
+    seq_along() |>
     lapply(\(i) {
       rtf_create_output_by_metadata(metadata_sorted[[i]], reference = references[i], output_directory = tfl.path)
     })
@@ -63,7 +63,7 @@ create_tfl_document_by_metadata = \(metadata, header_text='') {
   # table of content
   output_full_titles = sapply(metadata_sorted, with, {
     type_format = c('figure' = 'Figure', 'table' = 'Table', 'listing' = 'Listing')
-    full_title = paste(type_format[type], original_numbering, title)
+    full_title = paste(type_format[type], numbering, title)
     full_title
   })
   rtf_toc = create_table_of_contents(rtf_content_list, output_full_titles, references = references)
