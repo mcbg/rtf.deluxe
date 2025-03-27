@@ -1,4 +1,4 @@
-Package: rtf_deluxe
+Package: rtf.deluxe
 Type: Package
 Title: Creates RTF-files for pharma output.
 Version: 0.1.0
