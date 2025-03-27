@@ -2,6 +2,10 @@
 
 
 tfl_number_to_numeric_vector = function(tfl_number) {
+  # check validity
+  if (!all(grep('^(\\d+\\.)*\\d$', tfl_number))) stop('invalid numbering: ', tfl_number)
+
+  # derive numeric vector
   vec = tfl_number |>
     strsplit('\\.') |>
     unlist() |>
@@ -21,7 +25,7 @@ tfl_number_less_than = \(tfl_number, tfl_number2) {
       return(FALSE)
     }
   }
-  return(TRUE)
+  stop('duplicated tfl number')
 }
 
 tfl_number_order = \(tfl_number_list) {
