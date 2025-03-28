@@ -13,24 +13,35 @@ combine_pages_list = \(pages_list) {
 }
 
 #' @export
-assemble_rtfs_files = \(file_names, output_titles) {
+assemble_rtfs_files = \(file_names, titles, numbering, header_text = '') {
+  # sort
+  tfl_ordering = numbering |> tfl_number_order()
+  file_names_sorted = file_names[tfl_ordering]
+  titles_sorted = titles[tfl_ordering]
+
+
+  # create code for each output
   name = basename(file_names)
   N = length(file_names)
   references = paste0('ref', seq_along(file_names))
   rtf_content_list = lapply(seq_along(file_names), \(i) {
-    single_file_name = file_names[i]
-    single_title = output_titles[i]
+    single_file_name = file_names_sorted[i]
+    single_title = titles_sorted[i]
     rtf_content = readLines(single_file_name)
-    bookmark = rtf_create_bookmark(reference[i])
-    page_break = ifelse(i == N, '', '\\page')
-    c(bookmark, extract_file(rtf_content), page_break)
+    bookmark = rtf_create_bookmark(references[i])
+    #page_break = ifelse(i == N, '', '\\page')
+    page_break='' # TEMP
+    output_code = c(bookmark, extract_file(rtf_content), page_break)
+    return(output_code)
   })
-  rtf_toc = create_table_of_contents(rtf_content_list, output_titles, references)
+
+  # combine code into one file
+  rtf_toc = create_table_of_contents(rtf_content_list, titles_sorted, references)
   rtf_all_content = c(
     rtf_toc, '\\page',
     rtf_content_list |> unlist()
   )
-  full_document = rtf_add_head_and_tail(rtf_all_content, header_text = '')
+  full_document = rtf_add_head_and_tail(rtf_all_content, header_text = header_text)
   return(full_document)
 }
 

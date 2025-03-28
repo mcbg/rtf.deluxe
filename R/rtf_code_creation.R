@@ -18,8 +18,8 @@ rtf_create_header = \(text) {
 }
 
 rtf_create_link = \(text, reference, page_number, fixed_width = 100) {
-  sprintf('{\\pard {\\field{\\*\\fldinst{HYPERLINK "#%s"}}{\\fldrslt{\\tldot\\tqr\\tx13000 %s \\tab %d\\par}}}}',
-    reference, text, page_number)
+  sprintf('{\\pard {\\field{\\*\\fldinst{HYPERLINK "#%s"}}{\\fldrslt{\\tldot\\tqr %s %s \\tab %d\\par}}}}',
+    reference, get_tx_value(), text, page_number)
 }
 
 dataset_to_row_list  = \(dataset) {
@@ -38,7 +38,7 @@ rtf_create_png_rtf = \(file_name, width_scale = 100, height_scale = 100) {
 # rtf_create_table returns a list of rtf code, where each page
 # corresponds to an entry of the list.
 rtf_create_table = \(table_input,
-    margin_cm=0.25, max_rows_per_page = getOption('rtf_deluxe.max_rows_per_page')) {
+    margin_cm=0.25, max_rows_per_page = getOption('rtf.deluxe.max_rows_per_page')) {
 
   # extra data from table_input
   if ('data.frame' %in% class(table_input)) {
@@ -148,7 +148,7 @@ character_count_largest_word = \(x, header=NULL) {
     max()
 }
 
-character_to_cm = \(x, cm_per_character = getOption('rtf_deluxe.cm_per_character')) cm_per_character * x
+character_to_cm = \(x, cm_per_character = getOption('rtf.deluxe.cm_per_character')) cm_per_character * x
 
 inch_to_twip = \(x_inch) round(x_inch * 1440)
 cm_to_twip = \(x_cm) {
@@ -243,7 +243,7 @@ derive_page_number = \(number_of_pages, page_offset) {
 #' @export
 create_table_of_contents = \(rtf_content_list, output_titles, references) {
   # get options
-  table_of_contents_entries_per_page = getOption('rtf_deluxe.table_of_contents_entries_per_page')
+  table_of_contents_entries_per_page = getOption('rtf.deluxe.table_of_contents_entries_per_page')
 
   # asserts
   if (length(rtf_content_list) != length(output_titles)) {
@@ -265,17 +265,53 @@ create_table_of_contents = \(rtf_content_list, output_titles, references) {
   return(rtf_toc)
 }
 
+get_tx_value = \() {
+  page_width_twips = get_page_dims_twips()[1]
+  left_twips = c('rtf.deluxe.margin_left_cm') |> getOption() |> cm_to_twip()
+  right_twips = c('rtf.deluxe.margin_right_cm') |> getOption() |> cm_to_twip()
+  tx_twips = page_width_twips - left_twips - right_twips
+  return(paste0('\\tx', tx_twips))
+}
+
+get_page_dims_twips = \() {
+  page_dims = getOption('rtf.deluxe.page_dims')
+  dims_unit = getOption('rtf.deluxe.page_dims_unit')
+  page_dims_twip = switch(dims_unit,
+    cm = cm_to_twip(page_dims),
+    inch = inch_to_twip(page_dims),
+    stop('invalid value of rtf.deluxe.page_dims_unit, must be "cm" or "inch"')
+  )
+  return(page_dims_twip)
+}
+
 #' @export
 rtf_add_head_and_tail = \(rtf_contents, header_text) {
-  # BUG: doesnt add margins + footery / headery
-  letter_dims_inch = c(8.5, 11) |> rev()
-  rtf_paper_dims = paste0(c('\\paperw', '\\paperh'), letter_dims_inch |> inch_to_twip())
+  # compute page dims in twip
+
+  page_dims_twip = get_page_dims_twips()
+
+  # header format
+  header_text_from_top = cm_to_twip(getOption('rtf.deluxe.margin_top_cm')) / 2
+  rtf_headery = '\\headery' |> paste0(header_text_from_top)
+
+
+  # create header
+  rtf_paper_dims = paste0(c('\\paperw', '\\paperh'), page_dims_twip)
+  margin_values_twip = c('rtf.deluxe.margin_top_cm', 'rtf.deluxe.margin_bottom_cm',  'rtf.deluxe.margin_left_cm', 'rtf.deluxe.margin_right_cm') |>
+    sapply(getOption) |>
+    sapply(cm_to_twip)
+  margin_control_words = c('\\margt', '\\margb', '\\margl', '\\margr')
+  rtf_margins = paste0(margin_control_words, margin_values_twip)
+  rtf_tx = get_tx_value()
+
   rtf_header = c(
     '{\\rtf1\\ansi\\deff0{\\fonttbl{\\f0 \\fmodern TimesNewRoman;}}',
+    '\\notabind', # remove hanging indent
+    rtf_headery,
     rtf_paper_dims,
-    '\\widowctrl\\ftnbj\\fet0\\sectd\\lndscpsxn\\linex0', # landscape
+    rtf_margins,
     '\\fs20',
-    '{\\header{\\pard\\tqr\\tx13000\\fs20 ', header_text, '\\tab Page \\chpgn  of {\\field{\\*\\fldinst NUMPAGES}}\\par}}',
+    '{\\header{\\pard\\tqr\\fs20', rtf_tx, header_text, '\\tab Page \\chpgn  of {\\field{\\*\\fldinst NUMPAGES}}\\par}}',
     '{\\footer{\\qc\\fs20 \\par}}'
   )
   full_document = c(rtf_header, rtf_contents, '}')
