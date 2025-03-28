@@ -18,6 +18,12 @@ tfl_number_less_than = \(tfl_number, tfl_number2) {
   y = tfl_number2 |> tfl_number_to_numeric_vector()
 
   for (i in seq_along(x)) {
+    if (length(x) < i) {
+      return(TRUE)
+    }
+    if (length(y) < i) {
+      return(FALSE)
+    }
     if (x[i] < y[i]) {
       return(TRUE)
     }
@@ -25,7 +31,8 @@ tfl_number_less_than = \(tfl_number, tfl_number2) {
       return(FALSE)
     }
   }
-  stop('duplicated tfl number')
+  warning('duplicated tfl number')
+  return(TRUE)
 }
 
 tfl_number_order = \(tfl_number_list) {
