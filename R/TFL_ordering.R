@@ -36,6 +36,10 @@ tfl_number_less_than = \(tfl_number, tfl_number2) {
 }
 
 tfl_number_order = \(tfl_number_list) {
+  if (length(tfl_number_list) == 1) {
+    return(1)
+  }
+
   n = length(tfl_number_list)
   res = seq_along(tfl_number_list)
   # sorting algorithm
