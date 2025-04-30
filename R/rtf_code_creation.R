@@ -55,6 +55,9 @@ rtf_create_table = \(table_input,
     stop('invalid class ', class(dataset))
   }
 
+  # check
+  check_table(dataset)
+
   # derive cellx control words
   largest_nchar_rows = sapply(dataset, character_count_largest_word)
   largest_nchar_header = header |>
@@ -92,7 +95,7 @@ rtf_create_table = \(table_input,
     contents_last = sub_table_contents[sub_table_length]
 
     # create sub-table for page
-    rows_rtf = sapply(contents_excl_last, rtf_create_row, cell_width_cm)
+    rows_rtf = sapply(contents_excl_last, rtf_create_row, cell_width_cm) |> unlist() # is empty it return list() if unlist() is not used
     last_row_rtf = rtf_create_row(contents_last, border_control_words = '\\clbrdrb\\brdrs',
       cell_width_cm)
 
@@ -178,6 +181,13 @@ rtf_create_page = \(rtf_content, rtf_title, rtf_subtitle, rtf_footnote){
   return(rtf_full_final)
 }
 
+check_table = \(tfl_table) {
+      if ('data.table' %in% class(tfl_table) & !exists('data.table'))
+        stop('table with class `data.table` but data.table is not loaded')
+      if (tfl_table |> nrow() == 0)
+        stop('table with 0 rows')
+}
+
 rtf_create_output_by_metadata = \(output_metadata, output_directory, reference) {
   with(output_metadata, {
     # title
@@ -185,6 +195,9 @@ rtf_create_output_by_metadata = \(output_metadata, output_directory, reference) 
     full_title = paste(type_format[type], numbering, title)
     rtf_title = c(
       rtf_create_bookmark(reference),
+      rtf_create_header(full_title)
+    )
+    rtf_title_without_bookmark = c(
       rtf_create_header(full_title)
     )
 
@@ -197,14 +210,20 @@ rtf_create_output_by_metadata = \(output_metadata, output_directory, reference) 
       filename = paste0(name, '.rds')
       tfl_table = file.path(output_directory, filename) |>  readRDS()
 
-      # checks
-      if ('data.table' %in% class(tfl_table) & !exists('data.table'))
-        stop('table with class `data.table` but data.table is not loaded')
-      if (tfl_table |> nrow() == 0)
-        stop('table with 0 rows', output$title)
+      # table list (entry per page)
+      if ('list' %in% class(tfl_table)) {
+        # check
+        sapply(tfl_table, check_table)
 
-      # create pages
-      rtf_pages_contents = rtf_create_table(tfl_table)
+        # create pages
+        rtf_pages_contents = tfl_table |> sapply(rtf_create_table)
+
+      }
+      # single table
+      else {
+        # create pages
+        rtf_pages_contents = rtf_create_table(tfl_table)
+      }
     }
     else if (type == 'figure') {
       filename = file.path(output_directory, paste0(name, '.png'))
@@ -214,11 +233,14 @@ rtf_create_output_by_metadata = \(output_metadata, output_directory, reference) 
       stop('invalid type')
     }
 
+    # check all entries are character
+    rtf_pages_contents |> sapply(class) |> sapply(\(class_vector) 'character' == class_vector) |> all() |> stopifnot()
+
     # only adds title and subtitle to first subtable
     rtf_pages_first = rtf_create_page(rtf_pages_contents[[1]],
       rtf_title=rtf_title, rtf_subtitle=rtf_subtitle, rtf_footnote=rtf_footnote)
     rtf_pages_rest = lapply(rtf_pages_contents[-1], rtf_create_page,
-      rtf_title=NULL, rtf_subtitle=NULL, rtf_footnote=rtf_footnote) |>
+      rtf_title=rtf_title_without_bookmark, rtf_subtitle=rtf_subtitle, rtf_footnote=rtf_footnote) |>
       unlist()
     rtf_pages = c(rtf_pages_first, rtf_pages_rest)
 
