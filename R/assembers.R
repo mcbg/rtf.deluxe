@@ -45,11 +45,8 @@ assemble_rtfs_files = \(file_names, titles, numbering, header_text = '') {
   return(full_document)
 }
 
-# <<<< --------------------------------------------------------------------
-
-
 #' @export
-create_tfl_document_by_metadata = \(metadata, header_text='') {
+create_tfl_document_by_metadata = \(metadata, header_text='', output_directory) {
 
   # sort metadata
   tfl_ordering = metadata |>
@@ -67,7 +64,7 @@ create_tfl_document_by_metadata = \(metadata, header_text='') {
   rtf_content_list = metadata_sorted |>
     seq_along() |>
     lapply(\(i) {
-      rtf_create_output_by_metadata(metadata_sorted[[i]], reference = references[i], output_directory = tfl.path)
+      rtf_create_output_by_metadata(metadata_sorted[[i]], reference = references[i], output_directory=output_directory)
     })
   rtf_content = rtf_content_list |> unlist()
 
