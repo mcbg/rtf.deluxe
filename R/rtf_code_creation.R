@@ -37,7 +37,7 @@ rtf_create_png_rtf = \(file_name, width_scale = 100, height_scale = 100) {
 # rtf_create_table returns a list of rtf code, where each page
 # corresponds to an entry of the list.
 rtf_create_table = \(table_input,
-    margin_cm=0.25, max_rows_per_page = getOption('rtf.deluxe.max_rows_per_page')) {
+  margin_cm=0.25, max_rows_per_page = getOption('rtf.deluxe.max_rows_per_page')) {
 
   # extra data from table_input
   if ('data.frame' %in% class(table_input)) {
@@ -115,7 +115,8 @@ rtf_create_row = \(rows, cell_width_cm, bold = FALSE, border_control_words = '')
   cell_control_words = c(
     ifelse(bold, '\\b', '\\b0'),
     ' '
-  ) |> paste(collapse = '')
+  ) |> paste(collapse = ' ')
+
   # derive cells
   cells = sapply(rows, \(cell) {
     paste0('\\pard\\qc', cell_control_words, cell, '\\intbl\\cell')
@@ -126,9 +127,13 @@ rtf_create_row = \(rows, cell_width_cm, bold = FALSE, border_control_words = '')
 
   # answer
   ans = c('\\trowd',
+    '\\trgaph108',
+    '\\trpaddt113', # 0.2cm top margin
+    '\\trpaddb113', # 0.2cm top margin
+    '\\trpaddfl3\\trpaddfb3', # margin unit
     paste0('\\clvertalc', border_control_words, cellx_control_words),
     cells,
-    paste0('\\trrh', cell_height_twip),
+    #paste0('\\trrh', cell_height_twip),
     '\\trqc\\row') # trqc centers the table
   return(ans)
 }
@@ -137,6 +142,11 @@ rtf_create_text = \(text) paste0('{\\pard\\qc\\fs24 ', text, '\\par}')
 
 # functions, column width -------------------------------------------------
 
+strsplit_flat = \(x, split_char) {
+  stopifnot(length(split_char) == 1) # split recycles instead of split on all
+  x |> strsplit(split=split_char) |> unlist()
+}
+
 character_count_largest_word = \(x, header=NULL) {
   if (x |> nchar() |> max() == 0) {
     return(0)
@@ -144,8 +154,8 @@ character_count_largest_word = \(x, header=NULL) {
   x |>
     as.character() |>
     c(header) |>
-    strsplit(split = c(' ', '\n')) |>
-    unlist() |>
+    strsplit_flat(' ') |>
+    strsplit_flat('\n') |>
     nchar() |>
     max()
 }
@@ -181,10 +191,10 @@ rtf_create_page = \(rtf_content, rtf_title, rtf_subtitle, rtf_footnote){
 }
 
 check_table = \(tfl_table) {
-      if ('data.table' %in% class(tfl_table) & !exists('data.table'))
-        stop('table with class `data.table` but data.table is not loaded')
-      if (tfl_table |> nrow() == 0)
-        stop('table with 0 rows')
+  if ('data.table' %in% class(tfl_table) & !exists('data.table'))
+    stop('table with class `data.table` but data.table is not loaded')
+  if (tfl_table |> nrow() == 0)
+    stop('table with 0 rows')
 }
 
 rtf_create_output_by_metadata = \(output_metadata, output_directory, reference) {
