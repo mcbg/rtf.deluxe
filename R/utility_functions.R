@@ -17,6 +17,14 @@ deluxe_gsub = \(text, regex, replace) gsub(regex, replace, text, perl=TRUE)
 deluxe_split = \(text, sep) strsplit(text, split=sep)[[1]]
 deluxe_substr = \(text, i_start, i_end) substr(text, i_start, i_end)[[1]]
 
+# functions, blankout grouping --------------------------------------------
+
+blankout_duplicates_dataset = \(x_dataset, variables) {
+  ans = copy(x_dataset)
+  ans[, (variables) := lapply(.SD, blankout_duplicates), .SDcols=variables]
+  return(ans)
+}
+
 # functions, split table --------------------------------------------------
 
 split_multi_per_entry = \(dataset, parameter, parameter_values_per_entry) {
