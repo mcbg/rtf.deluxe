@@ -17,7 +17,8 @@ rtf_create_header = \(text) {
   paste0(text_rtf)
 }
 
-rtf_create_link = \(text, reference, page_number, fixed_width = 100) {
+rtf_create_link = \(text, reference, page_number) {
+  sprintf('{\\pard {\\field{\\*\\fldinst{HYPERLINK "#%s"}}{\\fldrslt{\\tldot\\tqr %s %s \\tab %d\\par}}}}',
     reference, get_tx_value(), text, page_number)
 }
 
