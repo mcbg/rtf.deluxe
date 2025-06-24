@@ -17,14 +17,15 @@ tfl_number_less_than = \(tfl_number, tfl_number2) {
   x = tfl_number |> tfl_number_to_numeric_vector()
   y = tfl_number2 |> tfl_number_to_numeric_vector()
 
-  for (i in seq_along(x)) {
+  N = max(length(x), length(y))
+  for (i in seq_len(N)) {
     if (length(x) < i) {
       return(TRUE)
     }
-    if (length(y) < i) {
+    else if (length(y) < i) {
       return(FALSE)
     }
-    if (x[i] < y[i]) {
+    else if (x[i] < y[i]) {
       return(TRUE)
     }
     else if (x[i] > y[i]) {
