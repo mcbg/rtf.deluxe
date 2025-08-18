@@ -289,11 +289,17 @@ create_table_of_contents = \(rtf_content_list, output_titles, references) {
   page_offset = (number_of_output %/% table_of_contents_entries_per_page) + 1
   page_numbers = derive_page_number(content_page_count, page_offset)
 
+  # create entries
   indices = seq_along(rtf_content_list)
-  rtf_toc = sapply(indices, \(i) {
+  rtf_toc_entries = sapply(indices, \(i) {
     clean_title = output_titles[i] |> clean_utf8()
     rtf_create_link(clean_title, reference = references[i], page_numbers[i])
   })
+
+  # add title
+  rtf_toc_header = rtf_create_header('Table of contents')
+  rtf_toc = c(rtf_toc_header , rtf_toc_entries)
+
   return(rtf_toc)
 }
 
