@@ -127,7 +127,7 @@ rtf_create_row = \(rows, cell_width_cm, bold = FALSE, border_control_words = '')
   # answer
   ans = c('\\trowd',
     '\\trgaph108',
-    '\\trpaddl108\\trpaddt113\\trpaddb113\\trpaddr108\\trpaddfl3\\trpaddft3\\trpaddfb3', # cell margins
+    '\\trpaddl108\\trpaddt57\\trpaddb57\\trpaddr108\\trpaddfl3\\trpaddft3\\trpaddfb3', # cell margins
     paste0('\\clvertalc', border_control_words, cellx_control_words),
     cells,
     #paste0('\\trrh', cell_height_twip),
