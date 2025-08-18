@@ -61,13 +61,16 @@ rtf_create_hierarchical_header = \(column_names, base_cell_width_cm) {
 derive_merged_cell_values = \(values, base_width) {
   # return list(values, width)
 
-  # derive merged_cell_values
+  # derive unique merged_cell_values and the index of `values` they first appear
   merged_cell_values = c()
   merged_cell_values_index = c()
   j = 1
+
   for (i in seq_along(values)) {
-    is_blank = is.na(values[i])
-    is_following = i > 1 && !is_blank && !is.na(values[i - 1]) && values[i] == values[i - 1]
+    is_blank = is.na(values[i]) | values[i] == ''
+    is_equal_to_previous = i > 1 && values[i] == values[i - 1]
+    is_following = !is_blank && !is.na(values[i - 1]) && is_equal_to_previous
+
     if (is_blank) {
       merged_cell_values[j] = ''
       merged_cell_values_index[j] = i

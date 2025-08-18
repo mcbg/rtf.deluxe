@@ -1,4 +1,15 @@
 # i/o
+
+# arguments ggsave
+plot_configuration = list(
+  width  = 22,
+  height = 12,
+  units = 'cm',
+  device = png,
+  type = 'cairo',
+  dpi = 600
+)
+
 save_figure_default = \(...) do.call(ggsave, c(list(...), plot_configuration))
 
 save_metadata = \(file_name, ...) {
@@ -13,13 +24,13 @@ replace_with_nonbreaking_spaces = \(dataset) {
   return(copy(ans))
 }
 
-# metadata
 
+# metadata ----------------------------------------------------------------
 
 #' @export
 save_output_and_metadata = \(
   tfl_output,
-  tfl.path,
+  tfl_path,
   # metadata
   name,
   numbering,
@@ -38,7 +49,7 @@ save_output_and_metadata = \(
       tfl_output = tfl_output |> lapply(replace_with_nonbreaking_spaces)
     }
     filename = name |> paste0('.rds')
-    table_path = tfl.path |>
+    table_path = tfl_path |>
       file.path(filename)
     saveRDS(tfl_output, file=table_path)
   }
@@ -52,14 +63,14 @@ save_output_and_metadata = \(
     # make all character
     tfl_output_clean = tfl_output |> lapply(as.character) |> as.data.table()
     filename = name |> paste0('.rds')
-    table_path = tfl.path |>
+    table_path = tfl_path |>
       file.path(filename)
     saveRDS(tfl_output_clean, file=table_path)
   }
   # save figure
   else if ('ggplot' %in% class(tfl_output)) {
     filename = name |> paste0('.png')
-    fig_path = tfl.path |> file.path(filename)
+    fig_path = tfl_path |> file.path(filename)
     save_figure_default(filename=fig_path, plot=tfl_output)
     save_figure_default(filename=fig_path, plot=tfl_output)
   }
@@ -76,7 +87,7 @@ save_output_and_metadata = \(
   extended_footnote = c(footnotes, tracing_note)
 
   # export metadata
-  metadata_file_name = tfl.path |> file.path(name |> paste0('.json'))
+  metadata_file_name = tfl_path |> file.path(name |> paste0('.json'))
   save_metadata(
     file_name = metadata_file_name,
     name = name,
@@ -88,3 +99,50 @@ save_output_and_metadata = \(
     program_name = program_name
   )
 }
+
+#' @export
+read_metadata = \(tfl_path) {
+  tfl_path |> list.files(pattern = '*.json', full.names = TRUE) |>
+    lapply(jsonlite::read_json, simplifyVector = TRUE)
+}
+
+# output, wrappers ------------------------------------------------------------
+
+#' @export
+save_output_and_metadata_by_list = \(single_output, single_metadata_list) {
+  with(single_metadata_list, {
+    # defaults
+    if (!exists('footnotes')) {
+      footnotes = NULL
+    }
+
+    if (!exists('subtitle')) {
+      subtitle = ''
+    }
+
+    # save
+    save_output_and_metadata(tfl_output=single_output, name=name, title=title, subtitle=subtitle, numbering=numbering, type=type, footnotes=footnotes, program_name=program_name)
+  })
+}
+
+#' @export
+save_outputs_by_list = \(output_list, metadata_function) {
+  metadata_list = names(output_list) |> lapply(metadata_function)
+  for (i in seq_along(output_list)) {
+    single_output = output_list[[i]]
+    single_metadata = metadata_list[[i]]
+    save_output_and_metadata_by_list(single_output=single_output, single_metadata_list=single_metadata)
+  }
+}
+
+# RTF i/o -----------------------------------------------------------------
+
+#' @export
+write_rtf = \(metadata, metadata_path, output_filename, header_rtf='') {
+  rtf_code = metadata |>
+    create_tfl_document_by_metadata(header_text = header_rtf, output_directory = tfl.path)
+
+  # write to disk
+  cat(rtf_code, file=output_filename, sep='\n')
+}
+
