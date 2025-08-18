@@ -140,7 +140,7 @@ save_outputs_by_list = \(output_list, metadata_function) {
 #' @export
 write_rtf = \(metadata, metadata_path, output_filename, header_rtf='') {
   rtf_code = metadata |>
-    create_tfl_document_by_metadata(header_text = header_rtf, output_directory = tfl.path)
+    create_tfl_document_by_metadata(header_text=header_rtf, output_directory=tfl.path)
 
   # write to disk
   cat(rtf_code, file=output_filename, sep='\n')

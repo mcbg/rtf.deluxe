@@ -77,7 +77,7 @@ create_tfl_document_by_metadata = \(metadata, header_text='', output_directory) 
   rtf_toc = create_table_of_contents(rtf_content_list, output_full_titles, references = references)
 
   # combine
-  full_document = rtf_add_head_and_tail(c(rtf_toc, '\\page', rtf_content), header_text=header_text)
+  full_document = rtf_add_head_and_tail(c(rtf_toc, rtf_content), header_text=header_text)
   return(full_document)
 }
 

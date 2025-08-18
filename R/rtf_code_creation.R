@@ -100,7 +100,7 @@ rtf_create_table = \(table_input,
       cell_width_cm)
 
     # paragraph is to ensure that \\page works
-    c('{\\pard\\fs24\\par}', '{', header_rtf, rows_rtf, last_row_rtf, '}')
+    c('{', header_rtf, rows_rtf, last_row_rtf, '}')
   })
   return(sub_tables)
 }
@@ -175,10 +175,11 @@ clean_utf8 = \(text) {
   return(rtf_full_final)
 }
 
-rtf_create_page = \(rtf_content, rtf_title, rtf_subtitle, rtf_footnote){
+rtf_create_page = \(rtf_content, rtf_title, rtf_subtitle, rtf_footnote, is_first_page=FALSE){
   # combine
   rtf_separator = '{\\pard\\par}'
-  rtf_full = c(rtf_title, rtf_subtitle, rtf_separator, rtf_content, rtf_separator, rtf_footnote, '\\page')
+  prefix = ifelse(is_first_page, '', '\\page')
+  rtf_full = c(prefix, rtf_title, rtf_subtitle, rtf_separator, rtf_content, rtf_separator, rtf_footnote)
 
   # BUG: only fixes limited number of symbols
   #      fix all by using utf8ToInt and \'XX control words
@@ -194,7 +195,7 @@ check_table = \(tfl_table) {
     stop('table with 0 rows')
 }
 
-rtf_create_output_by_metadata = \(output_metadata, output_directory, reference) {
+rtf_create_output_by_metadata = \(output_metadata, output_directory, reference, last_output=FALSE) {
   with(output_metadata, {
     # title
     type_format = c('figure' = 'Figure', 'table' = 'Table', 'listing' = 'Listing')
@@ -208,7 +209,13 @@ rtf_create_output_by_metadata = \(output_metadata, output_directory, reference) 
     )
 
     # subtitle & footnote
-    rtf_subtitle = rtf_create_text(subtitle)
+    if (is.null(subtitle) | subtitle == '') {
+      rtf_subtitle = NULL
+    }
+    else {
+      rtf_subtitle = rtf_create_text(subtitle)
+    }
+
     rtf_footnote = footnotes |> sapply(rtf_create_text)
 
     # content
