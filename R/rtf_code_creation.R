@@ -113,10 +113,8 @@ rtf_create_row = \(rows, cell_width_cm, bold = FALSE, border_control_words = '')
     cumsum() |>
     ceiling()
   cellx_control_words = paste0('\\cellx', cellx_values)
-  cell_control_words = c(
-    ifelse(bold, '\\b', '\\b0'),
-    ' '
-  ) |> paste(collapse = ' ')
+  cell_control_words = c(ifelse(bold, '\\b', '\\b0'), ' ') |>
+    paste(collapse = '')
 
   # derive cells
   cells = sapply(rows, \(cell) {
@@ -129,9 +127,7 @@ rtf_create_row = \(rows, cell_width_cm, bold = FALSE, border_control_words = '')
   # answer
   ans = c('\\trowd',
     '\\trgaph108',
-    '\\trpaddt113', # 0.2cm top margin
-    '\\trpaddb113', # 0.2cm top margin
-    '\\trpaddfl3\\trpaddfb3', # margin unit
+    '\\trpaddl108\\trpaddt113\\trpaddb113\\trpaddr108\\trpaddfl3\\trpaddft3\\trpaddfb3', # cell margins
     paste0('\\clvertalc', border_control_words, cellx_control_words),
     cells,
     #paste0('\\trrh', cell_height_twip),
