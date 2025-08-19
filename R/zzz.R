@@ -1,5 +1,6 @@
 .onLoad <- function(libname, pkgname) {
   default_options <- list(
+    rtf.deluxe.default_text_control_words = derive_text_control_words(size_pt=12, align='center'),
     rtf.deluxe.margin_top_cm = 1.27,
     rtf.deluxe.margin_bottom_cm = 1.27,
     rtf.deluxe.margin_left_cm = 2.00,

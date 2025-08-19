@@ -37,12 +37,18 @@ rtf_create_png_rtf = \(file_name, width_scale = 100, height_scale = 100) {
 
 # rtf_create_table returns a list of rtf code, where each page
 # corresponds to an entry of the list.
-rtf_create_table = \(table_input,
-  margin_cm=0.25, max_rows_per_page = getOption('rtf.deluxe.max_rows_per_page')) {
+rtf_create_table = \(
+  table_input, # data.frame, data.table or flextable
+  include_header=TRUE,
+  cell_text_control_words='\\qc',
+  margin_cm=0.25, max_rows_per_page = getOption('rtf.deluxe.max_rows_per_page')
+) {
 
   # extra data from table_input
   if ('data.frame' %in% class(table_input)) {
     header = names(table_input)
+    if (!include_header) header = rep('', length(names(table_input))) # length zero string if header isnt included
+
     dataset = table_input
   }
   else if ('flextable' %in% class(table_input)) {
@@ -69,7 +75,12 @@ rtf_create_table = \(table_input,
     sapply(max, 2)
 
   # create header
-  header_rtf = rtf_create_hierarchical_header(header, cell_width_cm) |> unlist()
+  if (include_header) {
+    header_rtf = rtf_create_hierarchical_header(header, base_cell_width_cm=cell_width_cm, cell_text_control_words=cell_text_control_words) |> unlist()
+  }
+  else {
+    header_rtf = ''
+  }
 
   # prepare rows
   table_rows = dataset_to_row_list(dataset)
@@ -95,9 +106,10 @@ rtf_create_table = \(table_input,
     contents_last = sub_table_contents[sub_table_length]
 
     # create sub-table for page
-    rows_rtf = sapply(contents_excl_last, rtf_create_row, cell_width_cm) |> unlist() # is empty it return list() if unlist() is not used
-    last_row_rtf = rtf_create_row(contents_last, border_control_words = '\\clbrdrb\\brdrs',
-      cell_width_cm)
+    rows_rtf = sapply(contents_excl_last, rtf_create_row, cell_width_cm=cell_width_cm, text_control_words=cell_text_control_words) |> unlist() # is empty it return list() if unlist() is not used
+
+    last_row_border = ifelse(include_header, '\\clbrdrb\\brdrs', '')
+    last_row_rtf = rtf_create_row(contents_last, border_control_words=last_row_border, cell_width_cm=cell_width_cm, text_control_words=cell_text_control_words)
 
     # paragraph is to ensure that \\page works
     c('{', header_rtf, rows_rtf, last_row_rtf, '}')
@@ -105,7 +117,7 @@ rtf_create_table = \(table_input,
   return(sub_tables)
 }
 
-rtf_create_row = \(rows, cell_width_cm, bold = FALSE, border_control_words = '') {
+rtf_create_row = \(rows, cell_width_cm, bold = FALSE, border_control_words = '', text_control_words) {
   # derive cellx
   cell_width_twips = (cell_width_cm) |>
     cm_to_twip()
@@ -113,12 +125,16 @@ rtf_create_row = \(rows, cell_width_cm, bold = FALSE, border_control_words = '')
     cumsum() |>
     ceiling()
   cellx_control_words = paste0('\\cellx', cellx_values)
-  cell_control_words = c(ifelse(bold, '\\b', '\\b0'), ' ') |>
+  cell_control_words = c(
+    text_control_words,
+    ifelse(bold, '\\b', '\\b0'),
+    ' '
+  ) |>
     paste(collapse = '')
 
   # derive cells
   cells = sapply(rows, \(cell) {
-    paste0('\\pard\\qc', cell_control_words, cell, '\\intbl\\cell')
+    paste0('\\pard\\intbl', cell_control_words, cell, '\\cell')
   })
 
   cell_height_cm = 0.5
@@ -135,7 +151,9 @@ rtf_create_row = \(rows, cell_width_cm, bold = FALSE, border_control_words = '')
   return(ans)
 }
 
-rtf_create_text = \(text) paste0('{\\pard\\qc\\fs24 ', text, '\\par}')
+rtf_create_text = \(text, control_words=getOption('rtf.deluxe.default_text_control_words')) {
+  paste0('{\\pard', control_words, ' ', text, '\\par}')
+}
 
 # functions, column width -------------------------------------------------
 
@@ -265,7 +283,7 @@ rtf_create_output_by_metadata = \(output_metadata, output_directory, reference, 
   })
 }
 
-# assemble doc ------------------------------------------------------------
+# Table of contents ------------------------------------------------------------
 
 derive_page_number = \(number_of_pages, page_offset) {
   cumulated_pages = cumsum(number_of_pages)
@@ -289,7 +307,8 @@ create_table_of_contents = \(rtf_content_list, output_titles, references) {
   content_page_count = sapply(rtf_content_list, \(rtf_line) grep('\\page', rtf_line) |> length())
   number_of_output = length(rtf_content_list)
 
-  page_offset = (number_of_output %/% table_of_contents_entries_per_page) + 1
+  title_page_offset = 1 # BUG: hardcoded
+  page_offset = (number_of_output %/% table_of_contents_entries_per_page) + 1 + title_page_offset
   page_numbers = derive_page_number(content_page_count, page_offset)
 
   # create entries
@@ -324,6 +343,9 @@ get_page_dims_twips = \() {
   )
   return(page_dims_twip)
 }
+
+
+# head and tail around document contents ----------------------------------
 
 #' @export
 rtf_add_head_and_tail = \(rtf_contents, header_text) {

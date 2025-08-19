@@ -35,7 +35,7 @@ get_values_and_cellwidth = \(column_names, base_width) {
     lapply(derive_merged_cell_values, base_width)
 }
 
-rtf_create_hierarchical_header = \(column_names, base_cell_width_cm) {
+rtf_create_hierarchical_header = \(column_names, base_cell_width_cm, cell_text_control_words) {
   header_row_list = get_values_and_cellwidth(column_names, base_cell_width_cm) |>
     rev()
 
@@ -50,9 +50,9 @@ rtf_create_hierarchical_header = \(column_names, base_cell_width_cm) {
   ans = mapply(\(values_and_width, border_control_word) {
     values = values_and_width$values
     width = values_and_width$width
-    rtf_create_row(values, width, bold=TRUE,
-      border_control_words = border_control_word)
-  }, header_row_list, border_values)
+    rtf_create_row(values, width, bold=TRUE, border_control_words = border_control_word, text_control_words=cell_text_control_words)
+
+  }, header_row_list, border_values, SIMPLIFY = FALSE)
 
   return(ans)
 }

@@ -13,12 +13,12 @@ combine_pages_list = \(pages_list) {
 }
 
 #' @export
-assemble_rtfs_files = \(file_names, titles, numbering, header_text = '') {
+assemble_rtfs_files = \(file_names, titles, numbering, document_title, title_page_info, header_text = '') {
+  #BUG: this has half implemented title page
   # sort
   tfl_ordering = numbering |> tfl_number_order()
   file_names_sorted = file_names[tfl_ordering]
   titles_sorted = titles[tfl_ordering]
-
 
   # create code for each output
   name = basename(file_names)
@@ -30,14 +30,22 @@ assemble_rtfs_files = \(file_names, titles, numbering, header_text = '') {
     rtf_content = readLines(single_file_name)
     bookmark = rtf_create_bookmark(references[i])
     #page_break = ifelse(i == N, '', '\\page')
-    page_break='' # TEMP
+    page_break = '' # TEMP
     output_code = c(bookmark, extract_file(rtf_content), page_break)
     return(output_code)
   })
 
-  # combine code into one file
+  # create title page and toc
+  title_style = derive_text_control_words(align='center', size_pt=28)
+  rtf_title = c(
+    rtf_create_text(document_title, control_words = title_style),
+    rtf_create_table(title_page_info, include_header=FALSE)
+  )
   rtf_toc = create_table_of_contents(rtf_content_list, titles_sorted, references)
+
+  # combine code into one file
   rtf_all_content = c(
+    rtf_title_page, '\\page',
     rtf_toc, '\\page',
     rtf_content_list |> unlist()
   )
@@ -46,7 +54,7 @@ assemble_rtfs_files = \(file_names, titles, numbering, header_text = '') {
 }
 
 #' @export
-create_tfl_document_by_metadata = \(metadata, header_text='', output_directory) {
+create_tfl_document_by_metadata = \(metadata, document_title, title_page_info, header_text='', output_directory) {
 
   # sort metadata
   tfl_ordering = metadata |>
@@ -68,6 +76,16 @@ create_tfl_document_by_metadata = \(metadata, header_text='', output_directory) 
     })
   rtf_content = rtf_content_list |> unlist()
 
+  # title page
+  title_style = derive_text_control_words(align='center', size_pt=22)
+  rtf_title_page = c(
+    '{\\pard\\par}', # separator
+    rtf_create_text(document_title, control_words = title_style),
+    '{\\pard\\par}', # separator
+    rtf_create_table(title_page_info, include_header=FALSE, cell_text_control_words='\\ql') |> unlist(),
+    '\\page'
+  )
+
   # table of content
   output_full_titles = sapply(metadata_sorted, with, {
     type_format = c('figure' = 'Figure', 'table' = 'Table', 'listing' = 'Listing')
@@ -77,7 +95,7 @@ create_tfl_document_by_metadata = \(metadata, header_text='', output_directory) 
   rtf_toc = create_table_of_contents(rtf_content_list, output_full_titles, references = references)
 
   # combine
-  full_document = rtf_add_head_and_tail(c(rtf_toc, rtf_content), header_text=header_text)
+  full_document = rtf_add_head_and_tail(c(rtf_title_page, rtf_toc, rtf_content), header_text=header_text)
   return(full_document)
 }
 
