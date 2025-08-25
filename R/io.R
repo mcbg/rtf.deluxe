@@ -17,6 +17,7 @@ save_metadata = \(file_name, ...) {
   jsonlite::write_json(metadata, file_name)
 }
 
+#' @export
 replace_with_nonbreaking_spaces = \(dataset) {
   ans = lapply(dataset, deluxe_gsub, ' ', '\u00a0')
   names(ans) = names(dataset) |> deluxe_gsub(' ', '\u00a0')
