@@ -11,9 +11,10 @@
 
 rtf_create_bookmark = \(code) sprintf('{\\*\\bkmkstart %s}{\\*\\bkmkend %s}', code, code)
 
-rtf_create_header = \(text) {
-  # \outlinelevelN indicates headers
-  text_rtf = sprintf("{\\pard\\outlinelevel0\\fs24\\b\\qc %s \\par}", text)
+rtf_create_header = \(text, include_in_navigation = TRUE) {
+  # \outlinelevelN indicates headers, these are added to Word's navigation pane
+  navigation_control_word = ifelse(include_in_navigation, '\\outlinelevel0', '')
+  text_rtf = sprintf("{\\pard%s\\fs24\\b\\qc %s \\par}", navigation_control_word, text)
   paste0(text_rtf)
 }
 
@@ -218,13 +219,8 @@ rtf_create_output_by_metadata = \(output_metadata, output_directory, reference, 
     # title
     type_format = c('figure' = 'Figure', 'table' = 'Table', 'listing' = 'Listing')
     full_title = paste(type_format[type], numbering, title)
-    rtf_title = c(
-      rtf_create_bookmark(reference),
-      rtf_create_header(full_title)
-    )
-    rtf_title_without_bookmark = c(
-      rtf_create_header(full_title)
-    )
+    rtf_title = c(rtf_create_bookmark(reference), rtf_create_header(full_title))
+    rtf_title_without_bookmark = c(rtf_create_header(full_title, include_in_navigation = FALSE))
 
     # subtitle & footnote
     if (is.null(subtitle) | subtitle == '') {
