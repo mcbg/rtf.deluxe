@@ -14,6 +14,7 @@ tfl_number_to_numeric_vector = function(tfl_number) {
 }
 
 tfl_number_less_than = \(tfl_number, tfl_number2) {
+
   x = tfl_number |> tfl_number_to_numeric_vector()
   y = tfl_number2 |> tfl_number_to_numeric_vector()
 
@@ -34,6 +35,23 @@ tfl_number_less_than = \(tfl_number, tfl_number2) {
   }
   warning('duplicated tfl number')
   return(TRUE)
+}
+
+#' Sort metadata by numbering
+#'
+#' The `numbering` value contains sections (for example 14.2.1) stored as
+#' characters. This function sorts the metadata to make sure the numbering values
+#' are in the correct order. This allows us to generate RTF-code for each output and then
+#' combine them in the correct order.
+#'
+#' @param metadata a list generated from read_metadata
+#' @returns metadata ordered by `numbering` values.
+#' @export
+sort_metadata = \(metadata) {
+  numbering = sapply(metadata, with, numbering)
+  ordered_indices = tfl_number_order(numbering)
+  metadata_sorted = metadata[ordered_indices]
+  return(metadata_sorted)
 }
 
 tfl_number_order = \(tfl_number_list) {

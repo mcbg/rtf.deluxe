@@ -139,7 +139,8 @@ save_output_and_metadata = \(
 #' @export
 read_metadata = \(tfl_path) {
   tfl_path |> list.files(pattern = '*.json', full.names = TRUE) |>
-    lapply(jsonlite::read_json, simplifyVector = TRUE)
+    lapply(jsonlite::read_json, simplifyVector = TRUE) |>
+    sort_metadata()
 }
 
 # output, wrappers ------------------------------------------------------------

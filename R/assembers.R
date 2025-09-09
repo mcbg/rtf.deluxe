@@ -55,12 +55,8 @@ assemble_rtfs_files = \(file_names, titles, numbering, document_title, title_pag
 
 #' @export
 create_tfl_document_by_metadata = \(metadata, document_title, title_page_info, header_text='', output_directory) {
-
   # sort metadata
-  tfl_ordering = metadata |>
-    sapply(`[[`, 'numbering') |>
-    tfl_number_order()
-  metadata_sorted = metadata[tfl_ordering]
+  metadata_sorted = metadata |> sort_metadata()
 
   # derive references
   references = sapply(metadata_sorted, with, {
