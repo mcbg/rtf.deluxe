@@ -19,10 +19,11 @@ save_metadata = \(file_name, ...) {
 
 #' @export
 replace_with_nonbreaking_spaces = \(dataset) {
-  ans = lapply(dataset, deluxe_gsub, ' ', '\u00a0')
-  names(ans) = names(dataset) |> deluxe_gsub(' ', '\u00a0')
-  class(ans) = class(dataset)
-  return(copy(ans))
+  answer_list = lapply(dataset, deluxe_gsub, ' ', '\u00a0')
+  answer_dataframe = as.data.frame(answer_list)
+  names(answer_dataframe) = names(dataset) |> deluxe_gsub(' ', '\u00a0')
+
+  return(answer_dataframe)
 }
 
 
@@ -35,9 +36,9 @@ replace_with_nonbreaking_spaces = \(dataset) {
 #' figures are saved as PNG-files. A footnote is added with the time, date and program name
 #' for traceability.
 #'
-#' @param tfl_output output can either be a data.frame, data.table, or a list of data.frames
+#' @param output output can either be a data.frame, data.table, or a list of data.frames
 #' , where each entry will be shown on it's own page. For figures provide a ggplot object.
-#' @param tfl_path the path to the folder where files will be saved
+#' @param path the path to the folder where files will be saved
 #' @param name Name of the output. This will also be the file name.
 #' @param number Appendix section number of output. For example 14.2.1 for a efficacy table.
 #' @param title The title of the output. This is used for the header and the table of contents.
@@ -49,8 +50,8 @@ replace_with_nonbreaking_spaces = \(dataset) {
 #' @export
 #' @examples
 #' save_output_and_metadata(
-#'   tfl_output=mtcars,
-#'   tfl_path='myoutput',
+#'   output=mtcars,
+#'   path='myoutput',
 #'   name='cars',
 #'   number='1.1',
 #'   title='Cars',
@@ -61,8 +62,8 @@ replace_with_nonbreaking_spaces = \(dataset) {
 #' )
 #'
 save_output_and_metadata = \(
-  tfl_output,
-  tfl_path,
+  output,
+  path,
   # metadata
   name,
   numbering,
@@ -75,35 +76,41 @@ save_output_and_metadata = \(
 ) {
 
   # save table
-  if ('list' %in% class(tfl_output)) {
+  if ('list' %in% class(output)) {
     if (nonbreaking_space) {
-      tfl_output = tfl_output |> lapply(replace_with_nonbreaking_spaces)
+      output = output |> lapply(replace_with_nonbreaking_spaces)
     }
     filename = name |> paste0('.rds')
-    table_path = tfl_path |>
-      file.path(filename)
-    saveRDS(tfl_output, file=table_path)
+    table_path = path |> file.path(filename)
+    saveRDS(output, file=table_path)
   }
-  else if ('data.table' %in% class(tfl_output)) {
+  else if ('data.frame' %in% class(output) | 'data.table' %in% class(output)) {
     if (nonbreaking_space) {
-      tfl_output = tfl_output |> replace_with_nonbreaking_spaces()
+      output_ready = output |> replace_with_nonbreaking_spaces()
     }
-    has_any_nas = sapply(tfl_output, anyNA) |> any()
+    else {
+      output_ready = output
+    }
+
+    # checks
+    has_any_nas = sapply(output_ready, anyNA) |> any()
     if (has_any_nas) stop('NAs in table/listing: ', title)
-    if (nrow(tfl_output) == 0) stop('0 row table: ', title)
+    if (nrow(output_ready) == 0) stop('0 row table: ', title)
+
     # make all character
-    tfl_output_clean = tfl_output |> lapply(as.character) |> as.data.table()
+    output_clean = output_ready |> lapply(as.character) |> as.data.frame()
+
+    # save table
     filename = name |> paste0('.rds')
-    table_path = tfl_path |>
-      file.path(filename)
-    saveRDS(tfl_output_clean, file=table_path)
+    table_path = path |> file.path(filename)
+    saveRDS(output_clean, file=table_path)
   }
   # save figure
-  else if ('ggplot' %in% class(tfl_output)) {
+  else if ('ggplot' %in% class(output)) {
     filename = name |> paste0('.png')
-    fig_path = tfl_path |> file.path(filename)
-    save_figure_default(filename=fig_path, plot=tfl_output)
-    save_figure_default(filename=fig_path, plot=tfl_output)
+    fig_path = path |> file.path(filename)
+    save_figure_default(filename=fig_path, plot=output)
+    save_figure_default(filename=fig_path, plot=output)
   }
   else {
     stop('invalid class')
@@ -118,7 +125,7 @@ save_output_and_metadata = \(
   extended_footnote = c(footnotes, tracing_note)
 
   # export metadata
-  metadata_file_name = tfl_path |> file.path(name |> paste0('.json'))
+  metadata_file_name = path |> file.path(name |> paste0('.json'))
   save_metadata(
     file_name = metadata_file_name,
     name = name,
@@ -133,12 +140,12 @@ save_output_and_metadata = \(
 
 #' Read all JSON metadata in folder
 #'
-#' @param tfl_path path that contains JSON metadata files
+#' @param path path that contains JSON metadata files
 #' @returns A list where each entry contains the metadata of a output.
 #' The metadata is stored as a list.
 #' @export
-read_metadata = \(tfl_path) {
-  tfl_path |> list.files(pattern = '*.json', full.names = TRUE) |>
+read_metadata = \(path) {
+  path |> list.files(pattern = '*.json', full.names = TRUE) |>
     lapply(jsonlite::read_json, simplifyVector = TRUE) |>
     sort_metadata()
 }
@@ -158,7 +165,7 @@ save_output_and_metadata_by_list = \(single_output, single_metadata_list) {
     }
 
     # save
-    save_output_and_metadata(tfl_output=single_output, name=name, title=title, subtitle=subtitle, numbering=numbering, type=type, footnotes=footnotes, program_name=program_name)
+    save_output_and_metadata(output=single_output, name=name, title=title, subtitle=subtitle, numbering=numbering, type=type, footnotes=footnotes, program_name=program_name)
   })
 }
 

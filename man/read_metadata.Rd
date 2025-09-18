@@ -4,10 +4,10 @@
 \alias{read_metadata}
 \title{Read all JSON metadata in folder}
 \usage{
-read_metadata(tfl_path)
+read_metadata(path)
 }
 \arguments{
-\item{tfl_path}{path that contains JSON metadata files}
+\item{path}{path that contains JSON metadata files}
 }
 \value{
 A list where each entry contains the metadata of a output.

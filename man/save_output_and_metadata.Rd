@@ -5,8 +5,8 @@
 \title{Save output and metadata}
 \usage{
 save_output_and_metadata(
-  tfl_output,
-  tfl_path,
+  output,
+  path,
   name,
   numbering,
   title,
@@ -18,10 +18,10 @@ save_output_and_metadata(
 )
 }
 \arguments{
-\item{tfl_output}{output can either be a data.frame, data.table, or a list of data.frames
+\item{output}{output can either be a data.frame, data.table, or a list of data.frames
 , where each entry will be shown on it's own page. For figures provide a ggplot object.}
 
-\item{tfl_path}{the path to the folder where files will be saved}
+\item{path}{the path to the folder where files will be saved}
 
 \item{name}{Name of the output. This will also be the file name.}
 
@@ -47,8 +47,8 @@ for traceability.
 }
 \examples{
 save_output_and_metadata(
-  tfl_output=mtcars,
-  tfl_path='myoutput',
+  output=mtcars,
+  path='myoutput',
   name='cars',
   number='1.1',
   title='Cars',
