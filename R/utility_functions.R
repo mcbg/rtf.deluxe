@@ -21,10 +21,24 @@ deluxe_substr = \(text, i_start, i_end) substr(text, i_start, i_end)[[1]]
 # functions, blankout grouping --------------------------------------------
 
 #' @export
-blankout_duplicates_dataset = \(x_dataset, variables) {
-  ans = copy(x_dataset)
-  ans[, (variables) := lapply(.SD, blankout_duplicates), .SDcols=variables]
-  return(ans)
+blankout_duplicates_dataset = \(dataset, grouping_variables) {
+  # checks
+  if(!'data.table' %in% class(dataset)) stop('dataset must be data.table')
+
+  # define
+  combined_group = dataset[, do.call(paste, .SD), .SDcols = grouping_variables]
+  loop_indices = seq_along(combined_group) |> setdiff(1)
+  answer = dataset |> copy()
+
+  for (i in loop_indices) {
+    if (combined_group[i] == combined_group[i - 1]) {
+      for (variable in grouping_variables) {
+        answer[[variable]][i] = ''
+      }
+    }
+  }
+
+  return(answer)
 }
 
 # functions, split table --------------------------------------------------
@@ -41,16 +55,23 @@ blankout_duplicates_dataset = \(x_dataset, variables) {
 #' split_into_list(iris, 'Species', 2)
 split_into_list = \(dataset, by_variable, values_per_page, blankout=TRUE) {
   dataset = data.table::as.data.table(dataset)
-  unique_values = dataset[, unique(get(by_variable))]
-  dataset[, page__ := match(get(by_variable), unique_values) %/% (values_per_page + 1)]
+
+  # define page
+  dataset[, group__ := do.call(paste, .SD), .SDcols = by_variable]
+  unique_values = dataset$group__ |> unique()
+  dataset[, page__ := match(group__, unique_values) %/% (values_per_page + 1)]
+  dataset[, group__ := NULL]
+
+  # split into pages
   page_list = dataset |> split(by='page__', keep.by=FALSE)
 
   if (blankout) {
-    for (i in seq_along(page_list)) {
-      page_list[[i]][[by_variable]] <- rtf.deluxe::blankout_duplicates(page_list[[i]][[by_variable]])
-    }
+    page_list_blanked = page_list |> lapply(blankout_duplicates_dataset, by_variable)
+    return(page_list_blanked)
   }
-  return(page_list)
+  else {
+    return(page_list)
+  }
 }
 
 # output utility ------------------------------------------------------------
