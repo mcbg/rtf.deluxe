@@ -199,7 +199,9 @@ create_table_of_contents = \(rtf_content_list, output_titles, references) {
 
   # add title
   rtf_toc_header = rtf_create_header('Table of contents')
-  rtf_toc = c(rtf_toc_header , rtf_toc_entries)
+  # the empty paragraph is to avoid a bug where clicking the first output in the navigation pane
+  # goes to the table of content instead of the first output.
+  rtf_toc = c(rtf_toc_header , rtf_toc_entries, '{\\pard \\par}')
 
   return(rtf_toc)
 }
