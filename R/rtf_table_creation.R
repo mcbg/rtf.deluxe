@@ -78,7 +78,7 @@ rtf_create_table = \(
 
     # split last row to add border
     contents_excl_last = sub_table_contents[-sub_table_length]
-    contents_last = sub_table_contents[sub_table_length]
+    contents_last = sub_table_contents[[sub_table_length]]
 
     # create sub-table for page
     rows_rtf = sapply(contents_excl_last, rtf_create_row, cell_width_cm=cell_width_cm, text_control_words=cell_text_control_words) |> unlist() # is empty it return list() if unlist() is not used
@@ -94,7 +94,7 @@ rtf_create_table = \(
 
 # functions, create row ---------------------------------------------------
 
-rtf_create_row = \(rows, cell_width_cm, bold = FALSE, border_control_words = '', text_control_words) {
+rtf_create_row = \(cells, cell_width_cm, bold = FALSE, border_control_words = '', text_control_words) {
   # derive cellx
   cell_width_twips = (cell_width_cm) |>
     cm_to_twip()
@@ -110,20 +110,26 @@ rtf_create_row = \(rows, cell_width_cm, bold = FALSE, border_control_words = '',
     paste(collapse = '')
 
   # derive cells
-  cells = sapply(rows, \(cell) {
-    paste0('\\pard\\intbl', cell_control_words, cell, '\\cell')
+  rtf_cells = cells |> seq_along() |> sapply(\(i) {
+    cell = cells[i]
+
+    # align left for the first cell
+    if (i == 1)  control_words = sub('\\\\qc', '\\qr', cell_control_words)
+    else control_words = cell_control_words
+
+    # collect rtf code
+    rtf_code = paste0('\\pard\\intbl', control_words, cell, '\\cell')
+
+    return(rtf_code)
   })
 
-  cell_height_cm = 0.5
-  cell_height_twip = cell_height_cm |> cm_to_twip()
-
-  # answer
-  ans = c('\\trowd',
+  # collect rtf code
+  answer = c('\\trowd',
     '\\trgaph108',
     '\\trpaddl108\\trpaddt57\\trpaddb57\\trpaddr108\\trpaddfl3\\trpaddft3\\trpaddfb3', # cell margins
     paste0('\\clvertalc', border_control_words, cellx_control_words),
-    cells,
-    #paste0('\\trrh', cell_height_twip),
+    rtf_cells,
     '\\trqc\\row') # trqc centers the table
-  return(ans)
+
+  return(answer)
 }
