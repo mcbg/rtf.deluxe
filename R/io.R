@@ -98,7 +98,7 @@ save_output_and_metadata = \(
     if (nrow(output_ready) == 0) stop('0 row table: ', title)
 
     # make all character
-    output_clean = output_ready |> lapply(as.character) |> as.data.frame()
+    output_clean = output_ready |> lapply(as.character) |> as.data.frame(check.names=FALSE)
 
     # save table
     filename = name |> paste0('.rds')
