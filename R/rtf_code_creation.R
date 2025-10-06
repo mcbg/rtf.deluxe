@@ -43,21 +43,37 @@ rtf_create_text = \(text, control_words=getOption('rtf.deluxe.default_text_contr
 # functions, column width -------------------------------------------------
 
 strsplit_flat = \(x, split_char) {
-  stopifnot(length(split_char) == 1) # split recycles instead of split on all
-  x |> strsplit(split=split_char) |> unlist()
+  stopifnot(length(split_char) == 1) # `split` recycles, this is to avoid w
+  answer_list = x |> strsplit(split=split_char)
+
+  # only split if the character is separating something
+  # not if `split_char` is the whole value of `x`
+  answer_list[x == split_char] <- ' '
+
+  # empty strings map to empty strings, not empty vectors
+  answer_list[x == ''] <- ''
+
+  # convert to character vector
+  answer = answer_list |> unlist()
+
+  return(answer)
 }
 
 character_count_largest_word = \(x, header=NULL) {
   if (x |> nchar() |> max() == 0) {
     return(0)
   }
-  x |>
-    as.character() |>
-    c(header) |>
+  x_with_header = x |> as.character() |> c(header)
+
+  x_split = x_with_header |>
     strsplit_flat(' ') |>
-    strsplit_flat('\n') |>
+    strsplit_flat('\n')
+
+  answer = x_split |>
     nchar() |>
     max()
+
+  return(answer)
 }
 
 character_to_cm = \(x, cm_per_character = getOption('rtf.deluxe.cm_per_character')) cm_per_character * x
