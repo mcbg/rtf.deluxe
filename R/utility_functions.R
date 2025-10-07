@@ -41,6 +41,40 @@ blankout_duplicates_dataset = \(dataset, grouping_variables) {
   return(answer)
 }
 
+# combine to single column  -----------------------------------------------
+
+derive_single_column_subgroup = \(dataset_group, group, subgroup) {
+  value_variables = names(dataset_group) |> setdiff(c(group, subgroup))
+
+  # header row
+  header_row = data.table(group__ = dataset_group[1, get(group)])
+
+  for (variable in value_variables) {
+    header_row[[variable]] = ''
+  }
+
+  # body rows
+  body_rows = copy(dataset_group)
+  body_rows[, group__ := paste0('    ', get(subgroup))]
+  body_rows[, (group) := NULL]
+  body_rows[, (subgroup) := NULL]
+
+  # collect
+  answer = rbind(header_row, body_rows)
+  setnames(answer, old = 'group__', new = ' ')
+
+  return(answer)
+}
+
+#' @export
+derive_single_column = \(dataset, group, subgroup) {
+  answer = dataset |>
+    split(by=group, keep.by = TRUE) |>
+    lapply(derive_single_column_subgroup, group = group, subgroup=subgroup) |>
+    rbindlist()
+  return(answer)
+}
+
 # functions, split table --------------------------------------------------
 
 #' Split dataset into list of datasets
