@@ -108,74 +108,92 @@ rtf_create_page = \(rtf_content, rtf_title, rtf_subtitle, rtf_footnote, is_first
 }
 
 rtf_create_output_by_metadata = \(output_metadata, output_directory, reference, last_output=FALSE) {
-  with(output_metadata, {
-    # title
-    type_format = c('figure' = 'Figure', 'table' = 'Table', 'listing' = 'Listing')
-    full_title = paste(type_format[type], numbering, title)
-    rtf_title = c(rtf_create_bookmark(reference), rtf_create_header(full_title))
-    rtf_title_without_bookmark = c(rtf_create_header(full_title, include_in_navigation = FALSE))
+  # get metadata
+  title = output_metadata$title
+  name = output_metadata$name
+  subtitle = output_metadata$subtitle
+  type = output_metadata$type
+  numbering = output_metadata$numbering
+  footnotes = output_metadata$footnotes
+  column_width_cm = output_metadata$column_width_cm
 
-    # subtitle & footnote
-    if (is.null(subtitle) | subtitle == '') {
-      rtf_subtitle = NULL
+  # check if required variables are NULL
+  stopifnot(!is.null(title))
+  stopifnot(!is.null(name))
+  stopifnot(!is.null(type))
+  stopifnot(!is.null(numbering))
+
+  # title
+  type_format = c('figure' = 'Figure', 'table' = 'Table', 'listing' = 'Listing')
+  full_title = paste(type_format[type], numbering, title)
+  rtf_title = c(rtf_create_bookmark(reference), rtf_create_header(full_title))
+  rtf_title_without_bookmark = c(rtf_create_header(full_title, include_in_navigation = FALSE))
+
+  # subtitle & footnote
+  if (is.null(subtitle) | subtitle == '') {
+    rtf_subtitle = NULL
+  }
+  else {
+    rtf_subtitle = rtf_create_text(subtitle)
+  }
+
+  rtf_footnote = footnotes |> sapply(rtf_create_text)
+
+  # content
+  if (type == 'table' | type == 'listing') {
+    filename = paste0(name, '.rds')
+    tfl_table = file.path(output_directory, filename) |>  readRDS()
+
+    # empty listing
+    if (type == 'listing' & 'list' %in% class(tfl_table) & length(tfl_table) == 0) {
+      rtf_pages_contents = list(
+        rtf_create_text('Empty listing, no relevant records')
+      )
     }
+    # table list (entry per page)
+    else if ('list' %in% class(tfl_table)) {
+      sapply(tfl_table, \(x) {
+        if (nrow(x) > getOption("rtf.deluxe.max_rows_per_page")) {
+          stop('manual subpages have too many rows compared to rtf.deluxe.max_rows_per_page')
+        }
+      })
+      # check
+      sapply(tfl_table, check_table)
+
+      # create pages
+      rtf_pages_contents = tfl_table |> sapply(rtf_create_table, cell_width_cm = column_width_cm)
+
+    }
+    # single table
     else {
-      rtf_subtitle = rtf_create_text(subtitle)
+      # create pages
+      rtf_pages_contents = rtf_create_table(tfl_table, cell_width_cm = column_width_cm)
     }
+  }
+  else if (type == 'figure') {
+    filename = file.path(output_directory, paste0(name, '.png'))
+    rtf_pages_contents = rtf_create_png_rtf(filename) |> list()
+  }
+  else {
+    stop('invalid type')
+  }
 
-    rtf_footnote = footnotes |> sapply(rtf_create_text)
+  # check all entries are character
+  rtf_pages_contents |> sapply(class) |> sapply(\(class_vector) 'character' == class_vector) |> all() |> stopifnot()
 
-    # content
-    if (type == 'table' | type == 'listing') {
-      filename = paste0(name, '.rds')
-      tfl_table = file.path(output_directory, filename) |>  readRDS()
+  # only adds title and subtitle to first subtable
+  rtf_pages_first = rtf_create_page(rtf_pages_contents[[1]],
+    rtf_title=rtf_title, rtf_subtitle=rtf_subtitle, rtf_footnote=rtf_footnote)
+  rtf_pages_rest = lapply(rtf_pages_contents[-1], rtf_create_page,
+    rtf_title=rtf_title_without_bookmark, rtf_subtitle=rtf_subtitle, rtf_footnote=rtf_footnote) |>
+    unlist()
+  rtf_pages = c(rtf_pages_first, rtf_pages_rest)
 
-      # empty listing
-      if (type == 'listing' & 'list' %in% class(tfl_table) & length(tfl_table) == 0) {
-        rtf_pages_contents = list(
-          rtf_create_text('Empty listing, no relevant records')
-        )
-      }
-      # table list (entry per page)
-      else if ('list' %in% class(tfl_table)) {
-        # check
-        sapply(tfl_table, check_table)
+  # checks
+  if (class(rtf_pages)[1] != 'character')
+    sprintf('should return charactor vector not %s', class(rtf_pages)) |> stop()
 
-        # create pages
-        rtf_pages_contents = tfl_table |> sapply(rtf_create_table)
-
-      }
-      # single table
-      else {
-        # create pages
-        rtf_pages_contents = rtf_create_table(tfl_table)
-      }
-    }
-    else if (type == 'figure') {
-      filename = file.path(output_directory, paste0(name, '.png'))
-      rtf_pages_contents = rtf_create_png_rtf(filename) |> list()
-    }
-    else {
-      stop('invalid type')
-    }
-
-    # check all entries are character
-    rtf_pages_contents |> sapply(class) |> sapply(\(class_vector) 'character' == class_vector) |> all() |> stopifnot()
-
-    # only adds title and subtitle to first subtable
-    rtf_pages_first = rtf_create_page(rtf_pages_contents[[1]],
-      rtf_title=rtf_title, rtf_subtitle=rtf_subtitle, rtf_footnote=rtf_footnote)
-    rtf_pages_rest = lapply(rtf_pages_contents[-1], rtf_create_page,
-      rtf_title=rtf_title_without_bookmark, rtf_subtitle=rtf_subtitle, rtf_footnote=rtf_footnote) |>
-      unlist()
-    rtf_pages = c(rtf_pages_first, rtf_pages_rest)
-
-    # checks
-    if (class(rtf_pages)[1] != 'character')
-      sprintf('should return charactor vector not %s', class(rtf_pages)) |> stop()
-
-    return(rtf_pages)
-  })
+  return(rtf_pages)
 }
 
 # Table of contents ------------------------------------------------------------

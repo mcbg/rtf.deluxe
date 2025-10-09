@@ -16,7 +16,9 @@ rtf_create_table = \(
   table_input, # data.frame, data.table, list, flextable
   include_header=TRUE,
   cell_text_control_words='\\qc',
-  margin_cm=0.25, max_rows_per_page = getOption('rtf.deluxe.max_rows_per_page')
+  margin_cm=0.25,
+  max_rows_per_page = getOption('rtf.deluxe.max_rows_per_page'),
+  cell_width_cm=NULL # use to manually specify
 ) {
 
   # extra data from table_input
@@ -40,14 +42,16 @@ rtf_create_table = \(
   check_table(dataset)
 
   # derive cellx control words
-  largest_nchar_rows = sapply(dataset, character_count_largest_word)
-  largest_nchar_header = header |>
-    deluxe_sub('\t.*', '') |>
-    sapply(character_count_largest_word)
-  largest_nchar = pmax(largest_nchar_rows, largest_nchar_header)
-  cell_width_cm = largest_nchar |>
-    character_to_cm() |>
-    sapply(max, 2)
+  if (is.null(cell_width_cm)) {
+    largest_nchar_rows = sapply(dataset, character_count_largest_word)
+    largest_nchar_header = header |>
+      deluxe_sub('\t.*', '') |>
+      sapply(character_count_largest_word)
+    largest_nchar = pmax(largest_nchar_rows, largest_nchar_header)
+    cell_width_cm = largest_nchar |>
+      character_to_cm() |>
+      sapply(max, 2)
+  }
 
   # create header
   if (include_header) {
