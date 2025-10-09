@@ -86,14 +86,14 @@ derive_single_column = \(dataset, group, subgroup) {
 #' @export
 #' @examples
 #' iris$Species = as.character(iris$Species)
-#' split_into_list(iris, 'Species', 2)
+#' split_into_list(iris, 'Species', 2, blankout=FALSE)
 split_into_list = \(dataset, by_variable, values_per_page, blankout=TRUE) {
   dataset = data.table::as.data.table(dataset)
 
   # define page
   dataset[, group__ := do.call(paste, .SD), .SDcols = by_variable]
   unique_values = dataset$group__ |> unique()
-  dataset[, page__ := match(group__, unique_values) %/% (values_per_page + 1)]
+  dataset[, page__ := (match(group__, unique_values) - 1) %/% (values_per_page)]
   dataset[, group__ := NULL]
 
   # split into pages
