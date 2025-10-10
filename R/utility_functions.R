@@ -44,6 +44,12 @@ blankout_duplicates_dataset = \(dataset, grouping_variables) {
 # combine to single column  -----------------------------------------------
 
 derive_single_column_subgroup = \(dataset_group, group, subgroup) {
+
+  # this is to avoid bug that occurs when you split by a factor with levels not present.
+  # the missing levels create empty datasets which create issues.
+  if (nrow(dataset_group) == 0) return(NULL)
+
+  # derive variable
   value_variables = names(dataset_group) |> setdiff(c(group, subgroup))
 
   # header row
