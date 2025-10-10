@@ -12,8 +12,37 @@ plot_configuration = list(
 
 save_figure_default = \(...) do.call(ggsave, c(list(...), plot_configuration))
 
-save_metadata = \(file_name, ...) {
-  metadata = list(...)
+save_metadata = \(
+    file_name,
+    name,
+    numbering,
+    title,
+    type,
+    subtitle,
+    footnotes,
+    program_name,
+    column_width_cm
+  )
+  {
+
+  # required elements
+  metadata= list(
+    file_name=file_name,
+    name=name,
+    numbering=numbering,
+    title=title,
+    type=type,
+    subtitle=subtitle,
+    footnotes=footnotes,
+    program_name=program_name
+  )
+
+  # add optional elements
+  if (!is.null(column_width_cm)) {
+    metadata$column_width_cm = column_width_cm
+  }
+
+  # save
   jsonlite::write_json(metadata, file_name)
 }
 
@@ -72,7 +101,8 @@ save_output_and_metadata = \(
   footnotes=NULL,
   type='table',
   program_name,
-  nonbreaking_space=(type == 'table')
+  nonbreaking_space=(type == 'table'),
+  column_width_cm = NULL
 ) {
 
   # save table
@@ -126,6 +156,7 @@ save_output_and_metadata = \(
 
   # export metadata
   metadata_file_name = path |> file.path(name |> paste0('.json'))
+
   save_metadata(
     file_name = metadata_file_name,
     name = name,
@@ -134,7 +165,8 @@ save_output_and_metadata = \(
     type = type,
     subtitle = subtitle,
     footnotes = extended_footnote,
-    program_name = program_name
+    program_name = program_name,
+    column_width_cm = column_width_cm
   )
 }
 
