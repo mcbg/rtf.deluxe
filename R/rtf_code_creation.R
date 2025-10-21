@@ -67,7 +67,9 @@ character_count_largest_word = \(x, header=NULL) {
 
   x_split = x_with_header |>
     strsplit_flat(' ') |>
-    strsplit_flat('\n')
+    strsplit_flat('\n') |>
+    strsplit_flat('\\line')
+
 
   answer = x_split |>
     nchar() |>
