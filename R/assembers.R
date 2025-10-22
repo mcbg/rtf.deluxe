@@ -54,7 +54,7 @@ assemble_rtfs_files = \(file_names, titles, numbering, document_title, title_pag
 }
 
 #' @export
-create_tfl_document_by_metadata = \(metadata, document_title, title_page_info, header_text='', output_directory) {
+create_tfl_document_by_metadata = \(metadata, document_title, title_page_info, header_text='', footer_text='', output_directory) {
   # sort metadata
   metadata_sorted = metadata |> sort_metadata()
 
@@ -91,7 +91,7 @@ create_tfl_document_by_metadata = \(metadata, document_title, title_page_info, h
   rtf_toc = create_table_of_contents(rtf_content_list, output_full_titles, references = references)
 
   # combine
-  full_document = rtf_add_head_and_tail(c(rtf_title_page, rtf_toc, rtf_content), header_text=header_text)
+  full_document = rtf_add_head_and_tail(c(rtf_title_page, rtf_toc, rtf_content), header_text=header_text, footer_text=footer_text)
   return(full_document)
 }
 

@@ -265,7 +265,7 @@ get_page_dims_twips = \() {
 # head and tail around document contents ----------------------------------
 
 #' @export
-rtf_add_head_and_tail = \(rtf_contents, header_text) {
+rtf_add_head_and_tail = \(rtf_contents, header_text, footer_text) {
   # compute page dims in twip
 
   page_dims_twip = get_page_dims_twips()
@@ -283,6 +283,8 @@ rtf_add_head_and_tail = \(rtf_contents, header_text) {
   margin_control_words = c('\\margt', '\\margb', '\\margl', '\\margr')
   rtf_margins = paste0(margin_control_words, margin_values_twip)
   rtf_tx = get_tx_value()
+  header_head = header_text[1]
+  header_tail = if (length(header_text) > 1) paste('\\line', header_text[-1]) else ''
 
   rtf_header = c(
     '{\\rtf1\\ansi\\deff0{\\fonttbl{\\f0 \\fmodern TimesNewRoman;}}',
@@ -291,8 +293,12 @@ rtf_add_head_and_tail = \(rtf_contents, header_text) {
     rtf_paper_dims,
     rtf_margins,
     '\\fs20',
-    '{\\header{\\pard\\tqr\\fs20', rtf_tx, header_text, '\\tab Page \\chpgn  of {\\field{\\*\\fldinst NUMPAGES}}\\par}}',
-    '{\\footer{\\qc\\fs20 \\par}}'
+    # header
+    '{\\header{\\pard\\tqr\\fs20', rtf_tx, header_head, '\\tab Page \\chpgn  of {\\field{\\*\\fldinst NUMPAGES}}',
+    header_tail,
+    '\\par}}',
+    # footer
+    '{\\footer{\\ql\\fs20', footer_text,'\\par}}'
   )
   full_document = c(rtf_header, rtf_contents, '}')
   return(full_document)

@@ -222,10 +222,11 @@ save_outputs_by_list = \(output_list, metadata_function) {
 #' @param title_page_info A data.frame with a `field` and `value` columns. This information is shown on title page.
 #' @param header_rtf Raw RTF-code that can be added to header
 #' @export
-write_rtf = \(metadata, metadata_path, output_filename, document_title, title_page_info, header_rtf='') {
+write_rtf = \(metadata, metadata_path, output_filename, document_title, title_page_info, header_rtf='', footer_rtf='') {
   rtf_code = metadata |>
     create_tfl_document_by_metadata(
       header_text=header_rtf,
+      footer_text=footer_rtf,
       output_directory=metadata_path,
       document_title=document_title,
       title_page_info=title_page_info)
