@@ -10,7 +10,14 @@ plot_configuration = list(
   dpi = 600
 )
 
-save_figure_default = \(...) do.call(ggsave, c(list(...), plot_configuration))
+save_figure_default = \(..., width=NULL, height=NULL) {
+  if (is.null(width)) width = plot_configuration$width
+  if (is.null(height)) height = plot_configuration$height
+
+  ggplot2::ggsave(filename=filename, plot=plot, width=width, height=height,
+    units=plot_configuration$units, device=plot_configuration$device, type=plot_configuration$type, dpi=plot_configuration$dpi)
+
+}
 
 save_metadata = \(
     file_name,
@@ -102,7 +109,9 @@ save_output_and_metadata = \(
   type='table',
   program_name,
   nonbreaking_space=(type == 'table'),
-  column_width_cm = NULL
+  column_width_cm = NULL, # used for tables
+  width=NULL, # used for figures
+  height=NULL # used for figures
 ) {
 
   # save table
