@@ -1,22 +1,12 @@
 # i/o
 
-# arguments ggsave
-plot_configuration = list(
-  width  = 22,
-  height = 12,
-  units = 'cm',
-  device = png,
-  type = 'cairo',
-  dpi = 600
-)
 
-save_figure_default = \(..., width=NULL, height=NULL) {
-  if (is.null(width)) width = plot_configuration$width
-  if (is.null(height)) height = plot_configuration$height
+save_figure_default = \(filename, plot, width=NULL, height=NULL) {
+  if (is.null(width)) width = getOption('rtf.deluxe.figure_width')
+  if (is.null(height)) height = getOption('rtf.deluxe.figure_height')
 
   ggplot2::ggsave(filename=filename, plot=plot, width=width, height=height,
-    units=plot_configuration$units, device=plot_configuration$device, type=plot_configuration$type, dpi=plot_configuration$dpi)
-
+    units='cm', device=png, type='cairo', dpi=600)
 }
 
 save_metadata = \(
@@ -147,7 +137,6 @@ save_output_and_metadata = \(
   else if ('ggplot' %in% class(output)) {
     filename = name |> paste0('.png')
     fig_path = path |> file.path(filename)
-    save_figure_default(filename=fig_path, plot=output)
     save_figure_default(filename=fig_path, plot=output)
   }
   else {
