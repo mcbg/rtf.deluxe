@@ -125,7 +125,6 @@ save_output_and_metadata = \(
     # checks
     has_any_nas = sapply(output_ready, anyNA) |> any()
     if (has_any_nas) stop('NAs in table/listing: ', title)
-    if (nrow(output_ready) == 0) stop('0 row table: ', title)
 
     # make all character
     output_clean = output_ready |> lapply(as.character) |> as.data.frame(check.names=FALSE)

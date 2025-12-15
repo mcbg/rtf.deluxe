@@ -146,8 +146,15 @@ rtf_create_output_by_metadata = \(output_metadata, output_directory, reference, 
     filename = paste0(name, '.rds')
     tfl_table = file.path(output_directory, filename) |>  readRDS()
 
+    # empty table
+    if (type == 'table' & 'data.frame' %in% class(tfl_table) & NROW(tfl_table) == 0) { # NROW can be used on lists avoiding an error
+      rtf_pages_contents = list(
+        rtf_create_text('Empty table, no relevant records')
+      )
+    }
+
     # empty listing
-    if (type == 'listing' & 'list' %in% class(tfl_table) & length(tfl_table) == 0) {
+    else if (type == 'listing' & 'list' %in% class(tfl_table) & length(tfl_table) == 0) {
       rtf_pages_contents = list(
         rtf_create_text('Empty listing, no relevant records')
       )
