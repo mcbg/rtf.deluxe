@@ -163,7 +163,11 @@ rtf_create_output_by_metadata = \(output_metadata, output_directory, reference, 
     else if ('list' %in% class(tfl_table)) {
       sapply(tfl_table, \(x) {
         if (nrow(x) > getOption("rtf.deluxe.max_rows_per_page")) {
-          stop('manual subpages have too many rows compared to rtf.deluxe.max_rows_per_page')
+          stop(
+            'manual subpages have too many rows compared to rtf.deluxe.max_rows_per_page\n',
+            type, ' ', numbering, ' ',  title, '\n',
+            name
+          )
         }
       })
       # check
