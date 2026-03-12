@@ -50,6 +50,9 @@ rtf_create_table = \(
       character_to_cm() |>
       sapply(max, 2)
   }
+  else if (length(cell_width_cm) != length(header)) {
+     stop('length of cell_width_cm doesn\'t match number of columns in input_table')
+  }
 
   # create header
   if (include_header) {
