@@ -102,6 +102,6 @@ create_standalone_rtf_file = \(output, output_title=NULL) {
   combined = combine_pages_list(rtf_pages)
 
   # combine
-  full_document = rtf_add_head_and_tail(combined, header_text = '')
+  full_document = rtf_add_head_and_tail(combined, header_text = '', footer_text='')
   return(full_document)
 }
