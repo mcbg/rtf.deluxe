@@ -109,6 +109,45 @@ rtf_create_page = \(rtf_content, rtf_title, rtf_subtitle, rtf_footnote, is_first
   return(rtf_full_final)
 }
 
+check_row_number = \(table_list_object) {
+      sapply(table_list_object, \(x) {
+        if (nrow(x) > getOption("rtf.deluxe.max_rows_per_page")) {
+          stop('manual subpages have too many rows compared to rtf.deluxe.max_rows_per_page')
+        }
+      })
+}
+
+rtf_create_table_or_listing_pages = \(table_object, type, column_width_cm) {
+    object_classes = class(table_object)
+
+    # empty table / listing
+    if (NROW(table_object) == 0) { # NROW can be used on lists avoiding an error
+      contents_text = sprintf('Empty %s, no relevant records', type)
+      contents = list(rtf_create_text(contents_text))
+      return(contents)
+    }
+    # table list (entry per page)
+    else if ('list' %in% object_classes) {
+      # check
+      check_row_number(table_object)
+      sapply(table_object, check_table)
+
+      # create pages
+      contents = table_object |> sapply(rtf_create_table, cell_width_cm = column_width_cm)
+      return(contents)
+
+    }
+    # single table
+    else if ('data.frame' %in% object_classes) {
+      # create pages
+      contents = rtf_create_table(table_object, cell_width_cm = column_width_cm)
+      return(contents)
+    }
+    else {
+      stop('invalid class for type=table')
+    }
+}
+
 rtf_create_output_by_metadata = \(output_metadata, output_directory, reference, last_output=FALSE) {
   # get metadata
   title = output_metadata$title
@@ -125,13 +164,13 @@ rtf_create_output_by_metadata = \(output_metadata, output_directory, reference, 
   stopifnot(!is.null(type))
   stopifnot(!is.null(numbering))
 
-  # title
+  # create title
   type_format = c('figure' = 'Figure', 'table' = 'Table', 'listing' = 'Listing')
   full_title = paste(type_format[type], numbering, title)
   rtf_title = c(rtf_create_bookmark(reference), rtf_create_header(full_title))
   rtf_title_without_bookmark = c(rtf_create_header(full_title, include_in_navigation = FALSE))
 
-  # subtitle & footnote
+  # create subtitle & footnote
   if (is.null(subtitle) | subtitle == '') {
     rtf_subtitle = NULL
   }
@@ -141,47 +180,11 @@ rtf_create_output_by_metadata = \(output_metadata, output_directory, reference, 
 
   rtf_footnote = footnotes |> sapply(rtf_create_text)
 
-  # content
+  # create content
   if (type == 'table' | type == 'listing') {
     filename = paste0(name, '.rds')
-    tfl_table = file.path(output_directory, filename) |>  readRDS()
-
-    # empty table
-    if (type == 'table' & 'data.frame' %in% class(tfl_table) & NROW(tfl_table) == 0) { # NROW can be used on lists avoiding an error
-      rtf_pages_contents = list(
-        rtf_create_text('Empty table, no relevant records')
-      )
-    }
-
-    # empty listing
-    else if (type == 'listing' & 'list' %in% class(tfl_table) & length(tfl_table) == 0) {
-      rtf_pages_contents = list(
-        rtf_create_text('Empty listing, no relevant records')
-      )
-    }
-    # table list (entry per page)
-    else if ('list' %in% class(tfl_table)) {
-      sapply(tfl_table, \(x) {
-        if (nrow(x) > getOption("rtf.deluxe.max_rows_per_page")) {
-          stop(
-            'manual subpages have too many rows compared to rtf.deluxe.max_rows_per_page\n',
-            type, ' ', numbering, ' ',  title, '\n',
-            name
-          )
-        }
-      })
-      # check
-      sapply(tfl_table, check_table)
-
-      # create pages
-      rtf_pages_contents = tfl_table |> sapply(rtf_create_table, cell_width_cm = column_width_cm)
-
-    }
-    # single table
-    else {
-      # create pages
-      rtf_pages_contents = rtf_create_table(tfl_table, cell_width_cm = column_width_cm)
-    }
+    table_object = file.path(output_directory, filename) |>  readRDS()
+    rtf_pages_contents = rtf_create_table_or_listing_pages(table_object, type=type, column_width_cm=column_width_cm)
   }
   else if (type == 'figure') {
     filename = file.path(output_directory, paste0(name, '.png'))
@@ -216,6 +219,7 @@ derive_page_number = \(number_of_pages, page_offset) {
   result = c(0, cumulated_pages[-length(cumulated_pages)]) + 1 + page_offset
   return(result)
 }
+
 
 # rtf_content_list contain 1 output per entry
 # the table of contents will have 1 entry per output

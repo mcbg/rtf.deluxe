@@ -2,8 +2,8 @@
 # checks ------------------------------------------------------------------
 
 check_table = \(tfl_table) {
-  if ('data.table' %in% class(tfl_table) & !exists('data.table'))
-    stop('table with class `data.table` but data.table is not loaded')
+  if (!'data.frame' %in% class(tfl_table) ) stop('invalid class for table')
+  if ('data.table' %in% class(tfl_table) & !exists('data.table')) stop('table with class `data.table` but data.table is not loaded')
 }
 
 # functions, create table ---------------------------------------------------------------

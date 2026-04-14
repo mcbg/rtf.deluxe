@@ -1,7 +1,7 @@
 Package: rtf.deluxe
 Type: Package
 Title: Creates RTF-files for pharma output.
-Version: 0.1.0
+Version: 1.0.0
 ByteCompile: TRUE
 Description: Creates TFL RTF-files and assembles RTF-files.
   The package has no dependencies.
